@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solicitud de viáticos — MDreieck</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --azul:#1A1080;
+    --azul-80:#3A2FA0;
+    --azul-claro:#ADD8E6;
+    --azul-tinte:#EDF1FB;
+    --amarillo:#FFE600;
+    --gris:#F0F0F0;
+    --linea:#D4D9E8;
+    --texto:#151626;
+    --tenue:#5D6480;
+    --ok:#0F7B4F;
+    --error:#B3261E;
+    --radio:6px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:#F5F6FA;
+    color:var(--texto);
+    font-size:15px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .barra{
+    background:var(--azul);
+    color:#fff;
+    padding:14px 22px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:0 1px 0 rgba(0,0,0,.15);
+  }
+  .marca{display:flex;align-items:center;gap:12px;min-width:0}
+  .marca img{height:34px;width:auto;background:#fff;border-radius:4px;padding:3px}
+  .marca .wordmark{
+    font-weight:800;letter-spacing:-.02em;font-size:19px;
+    border:2px solid #fff;border-radius:4px;padding:2px 8px;
+  }
+  .barra h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
+  .barra h1 small{display:block;font-weight:400;font-size:12px;opacity:.7;letter-spacing:.04em;text-transform:uppercase}
+  .folio-badge{
+    margin-left:auto;
+    background:var(--amarillo);
+    color:#111;
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.06em;
+    padding:7px 12px;
+    border-radius:4px;
+    font-size:15px;
+    white-space:nowrap;
+  }
+  .folio-badge span{display:block;font-size:9px;font-weight:600;letter-spacing:.12em;opacity:.65}
+
+  main{max-width:1120px;margin:0 auto;padding:22px 18px 140px}
+  .aviso{
+    background:#fff;border:1px solid var(--linea);border-left:3px solid var(--azul);
+    border-radius:var(--radio);padding:12px 14px;margin-bottom:18px;font-size:13px;color:var(--tenue);
+  }
+  .aviso b{color:var(--texto)}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  fieldset{
+    background:#fff;border:1px solid var(--linea);border-radius:var(--radio);
+    padding:16px 16px 6px;margin:0 0 18px;
+  }
+  legend{
+    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--azul);padding:0 8px;margin-left:-4px;
+  }
+  .campo{margin-bottom:14px}
+  .campo label{display:block;font-size:12px;font-weight:600;color:var(--tenue);margin-bottom:5px}
+  .campo label .req{color:var(--error);margin-left:2px}
+  .campo .ayuda{font-weight:400;font-size:11px;color:#8b90a5;display:block;margin-top:1px}
+  input,select,textarea{
+    width:100%;font:inherit;font-size:14px;color:var(--texto);
+    padding:9px 10px;border:1px solid var(--linea);border-radius:4px;background:#fff;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}
+  input[readonly]{background:var(--gris);color:var(--tenue)}
+  input.amarillo{background:var(--amarillo);color:#111;font-weight:700;letter-spacing:.05em;border-color:#D6C200}
+  textarea{resize:vertical;min-height:78px}
+  .fila-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .campo.err input,.campo.err select,.campo.err textarea{border-color:var(--error);background:#FDF3F2}
+
+  .logo-tool{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tenue)}
+  .logo-tool input[type=file]{border:0;padding:0;font-size:12px}
+
+  .acciones{
+    position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);
+    padding:12px 18px;display:flex;gap:10px;justify-content:flex-end;align-items:center;
+    box-shadow:0 -2px 14px rgba(20,22,45,.07);z-index:20;
+  }
+  .acciones .msg{margin-right:auto;font-size:13px;font-weight:600;min-height:18px}
+  .acciones .msg.ok{color:var(--ok)}
+  .acciones .msg.error{color:var(--error)}
+  .acciones .msg.info{color:var(--tenue);font-weight:500}
+  button{
+    font:inherit;font-weight:600;font-size:14px;padding:10px 18px;border-radius:4px;cursor:pointer;
+    border:1px solid var(--azul);background:#fff;color:var(--azul);
+  }
+  button.primario{background:var(--azul);color:#fff}
+  button:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.5;cursor:progress}
+  button:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+
+  @media (max-width:820px){
+    .cols{grid-template-columns:1fr}
+    .acciones{flex-wrap:wrap}
+    .acciones .msg{width:100%;margin-bottom:4px}
+    button{flex:1}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    button{transition:filter .15s ease}
+  }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="marca">
+    <img id="logoImg" alt="MDreieck" hidden>
+    <span class="wordmark" id="logoTexto">MDreieck</span>
+  </div>
+  <h1>Solicitud para pago de viáticos<small>Formato interno</small></h1>
+  <div class="folio-badge"><span>Consecutivo</span><span id="badgeConsec" style="font-size:15px;opacity:1">VIA-MD-001</span></div>
+</header>
+
+<main>
+  <p class="aviso">
+    Llena los datos y genera el PDF con el formato oficial. Al guardar, el PDF se envía a la carpeta de Drive,
+    se registra la solicitud en la hoja de cálculo y el consecutivo avanza al siguiente número.
+    <b>El importe lo calcula Costos</b>, por eso ese campo va vacío en el formato.
+  </p>
+
+  <div class="cols">
+
+    <!-- ─────────── COLUMNA IZQUIERDA ─────────── -->
+    <div>
+      <fieldset>
+        <legend>Quién solicita</legend>
+
+        <div class="campo">
+          <label for="area">Área solicitante <span class="req">*</span></label>
+          <input id="area" list="areas" placeholder="Infraestructura">
+          <datalist id="areas">
+            <option value="Infraestructura"><option value="Sistemas"><option value="Laboratorio">
+            <option value="Operaciones"><option value="Administración"><option value="Comercial">
+          </datalist>
+        </div>
+
+        <div class="campo">
+          <label for="solicitante">Nombre de quien solicita <span class="req">*</span></label>
+          <input id="solicitante" placeholder="Francisco Ramírez">
+        </div>
+
+        <div class="campo">
+          <label for="trabajador">Nombre completo del trabajador <span class="req">*</span>
+            <span class="ayuda">A quien se depositarán los viáticos</span>
+          </label>
+          <input id="trabajador" placeholder="José Francisco Ramírez Zariñana">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Viaje</legend>
+
+        <div class="fila-2">
+          <div class="campo">
+            <label for="fechaInicio">Inicia el <span class="req">*</span></label>
+            <input type="date" id="fechaInicio">
+          </div>
+          <div class="campo">
+            <label for="fechaFin">Finaliza el <span class="req">*</span></label>
+            <input type="date" id="fechaFin">
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="totalDias">Total de días <span class="ayuda">Se calcula solo</span></label>
+          <input id="totalDias" readonly>
+        </div>
+
+        <div class="campo">
+          <label for="tipoServicio">Tipo de servicio o motivo <span class="req">*</span></label>
+          <textarea id="tipoServicio" style="min-height:60px" placeholder="Revisión de 7 sitios en el Municipio de Puebla"></textarea>
+        </div>
+
+        <div class="campo">
+          <label for="datosAdicionales">Datos adicionales del viaje</label>
+          <input id="datosAdicionales" value="CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Observaciones</legend>
+        <div class="campo">
+          <label for="observaciones">Notas para Costos</label>
+          <textarea id="observaciones" placeholder="Acudirán 5 personas, 2 del área de sistemas y 3 de laboratorio"></textarea>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- ─────────── COLUMNA DERECHA ─────────── -->
+    <div>
+      <fieldset>
+        <legend>Control</legend>
+
+        <div class="fila-2">
+          <div class="campo">
+            <label for="fechaSolicitud">Fecha de solicitud</label>
+            <input id="fechaSolicitud" readonly>
+          </div>
+          <div class="campo">
+            <label for="consecutivo">No. consecutivo</label>
+            <input id="consecutivo" class="amarillo" readonly>
+          </div>
+        </div>
+
+        <div class="fila-2">
+          <div class="campo">
+            <label for="folio">Folio</label>
+            <input id="folio" value="COOINS">
+          </div>
+          <div class="campo">
+            <label for="ticket">No. de ticket <span class="ayuda">Opcional</span></label>
+            <input id="ticket">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Datos bancarios</legend>
+
+        <div class="fila-2">
+          <div class="campo">
+            <label for="banco">Banco <span class="req">*</span></label>
+            <input id="banco" placeholder="Efecticard">
+          </div>
+          <div class="campo">
+            <label for="sucursal">Sucursal</label>
+            <input id="sucursal">
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="tarjeta">No. de tarjeta</label>
+          <input id="tarjeta" inputmode="numeric" placeholder="5429 1730 0027 9189">
+        </div>
+
+        <div class="campo">
+          <label for="clabe">CLABE interbancaria <span class="ayuda">18 dígitos</span></label>
+          <input id="clabe" inputmode="numeric" maxlength="24">
+        </div>
+
+        <div class="campo">
+          <label for="fechaTransferencia">Fecha en que requieren la transferencia <span class="req">*</span></label>
+          <input type="date" id="fechaTransferencia">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cliente</legend>
+        <div class="campo">
+          <label for="cliente">Nombre del cliente <span class="req">*</span></label>
+          <textarea id="cliente" style="min-height:56px" placeholder="Dirección de Gestión de Riesgos del Municipio de Puebla"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Logo del formato</legend>
+        <div class="campo logo-tool">
+          <input type="file" id="logoFile" accept="image/png,image/jpeg">
+          <button type="button" id="btnQuitarLogo" style="padding:6px 10px;font-size:12px">Quitar</button>
+        </div>
+        <p style="font-size:12px;color:var(--tenue);margin:0 0 12px">
+          Se guarda en este navegador y se imprime en el PDF. Si no cargas ninguno, el formato usa el nombre MDreieck en texto.
+        </p>
+      </fieldset>
+    </div>
+
+  </div>
+</main>
+
+<div class="acciones">
+  <span class="msg" id="msg"></span>
+  <button type="button" id="btnPreview">Ver PDF</button>
+  <button type="button" id="btnDescargar">Descargar PDF</button>
+  <button type="button" class="primario" id="btnGuardar">Guardar y enviar</button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — cambia estos tres valores
+   ══════════════════════════════════════════════════════════════ */
+const APPS_URL  = 'https://script.google.com/macros/s/AKfycbzpiGad-0hH-iDMSqo6RV5TP0K-ax33vNAa5fY2br6ueQ_CPCCnNAy2R5iHJA4-U319oQ/exec';
+const FOLDER_ID = '16yJ82MVsmRDup0gA1GicFE2Ami726FUl';  // carpeta de Drive donde caen los PDF
+const SHEET_ID  = '1otbCy7zMB4ibnQSL0BXo-VBK7rKGqntuo8HteibQ2LI';  // hoja de cálculo del registro
+let   LOGO      = '';                           // 'data:image/jpeg;base64,...' o cárgalo desde la app
+
+/* ── Colores del formato ── */
+const AZL = [26, 16, 128];
+const AZC = [173, 216, 230];
+const AML = [255, 255, 0];
+const BLN = [255, 255, 255];
+const NGR = [0, 0, 0];
+const GRS = [240, 240, 240];
+
+const $ = id => document.getElementById(id);
+const NOTA = 'Nota Importante: El Departamento de Costos, previa autorización del pago de viáticos, deberá compartir esta solicitud de pago a los correos: costos@mdreieck.com.mx; recursoshumanos@mdreieck.com.mx; atencionoperativa@mdreieck.com.mx; cxp1@mdreieck.com.mx';
+
+/* ══════════════════════════════════════════════════════════════
+   CONSECUTIVO (localStorage)
+   ══════════════════════════════════════════════════════════════ */
+let consec = 1;
+
+function loadConsec(){
+  const stored = parseInt(localStorage.getItem('via_md_consec') || '0', 10);
+  consec = (isNaN(stored) ? 0 : stored) + 1;
+  const txt = 'VIA-MD-' + String(consec).padStart(3, '0');
+  $('consecutivo').value = txt;
+  $('badgeConsec').textContent = txt;
+}
+
+function avanzarConsec(){
+  localStorage.setItem('via_md_consec', String(consec));
+  loadConsec();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FECHAS Y DÍAS
+   ══════════════════════════════════════════════════════════════ */
+function parseISO(s){
+  if(!s) return null;
+  const p = s.split('-');
+  if(p.length !== 3) return null;
+  return new Date(+p[0], +p[1] - 1, +p[2]);
+}
+function fmt(s){
+  const d = parseISO(s);
+  if(!d) return '';
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth() + 1).padStart(2,'0');
+  return dd + '/' + mm + '/' + d.getFullYear();
+}
+function hoyISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function calcDias(){
+  const ini = parseISO($('fechaInicio').value);
+  const fin = parseISO($('fechaFin').value);
+  if(ini && fin && fin >= ini){
+    $('totalDias').value = Math.round((fin - ini) / 86400000) + 1;
+  }else{
+    $('totalDias').value = '';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOGO
+   ══════════════════════════════════════════════════════════════ */
+function pintarLogo(){
+  if(LOGO){
+    $('logoImg').src = LOGO;
+    $('logoImg').hidden = false;
+    $('logoTexto').hidden = true;
+  }else{
+    $('logoImg').hidden = true;
+    $('logoTexto').hidden = false;
+  }
+}
+function cargarLogoGuardado(){
+  const g = localStorage.getItem('via_md_logo');
+  if(g) LOGO = g;
+  pintarLogo();
+}
+$('logoFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    LOGO = r.result;
+    try{ localStorage.setItem('via_md_logo', LOGO); }
+    catch(_){ msg('El logo es muy pesado para guardarlo. Usa una imagen de menos de 1 MB.', 'error'); }
+    pintarLogo();
+    msg('Logo actualizado.', 'ok');
+  };
+  r.readAsDataURL(f);
+});
+$('btnQuitarLogo').addEventListener('click', () => {
+  LOGO = '';
+  localStorage.removeItem('via_md_logo');
+  $('logoFile').value = '';
+  pintarLogo();
+  msg('Logo quitado.', 'info');
+});
+
+/* ══════════════════════════════════════════════════════════════
+   RECOLECTAR + VALIDAR
+   ══════════════════════════════════════════════════════════════ */
+const OBLIGATORIOS = [
+  ['area','Área solicitante'],
+  ['solicitante','Nombre de quien solicita'],
+  ['trabajador','Nombre completo del trabajador'],
+  ['fechaInicio','Fecha de inicio del viaje'],
+  ['fechaFin','Fecha de fin del viaje'],
+  ['tipoServicio','Tipo de servicio'],
+  ['banco','Banco'],
+  ['fechaTransferencia','Fecha de transferencia'],
+  ['cliente','Nombre del cliente']
+];
+
+function datos(){
+  return {
+    consecutivo:   $('consecutivo').value,
+    folio:         $('folio').value.trim(),
+    fechaSolicitud:fmt($('fechaSolicitud').dataset.iso),
+    area:          $('area').value.trim(),
+    solicitante:   $('solicitante').value.trim(),
+    trabajador:    $('trabajador').value.trim(),
+    fechaInicio:   $('fechaInicio').value,
+    fechaFin:      $('fechaFin').value,
+    totalDias:     $('totalDias').value,
+    tipoServicio:  $('tipoServicio').value.trim(),
+    datosAdicionales: $('datosAdicionales').value.trim(),
+    cliente:       $('cliente').value.trim(),
+    banco:         $('banco').value.trim(),
+    sucursal:      $('sucursal').value.trim(),
+    tarjeta:       $('tarjeta').value.trim(),
+    clabe:         $('clabe').value.trim(),
+    fechaTransferencia: $('fechaTransferencia').value,
+    ticket:        $('ticket').value.trim(),
+    observaciones: $('observaciones').value.trim()
+  };
+}
+
+function validar(){
+  document.querySelectorAll('.campo.err').forEach(c => c.classList.remove('err'));
+  const faltan = [];
+  OBLIGATORIOS.forEach(([id, nombre]) => {
+    if(!$(id).value.trim()){
+      faltan.push(nombre);
+      $(id).closest('.campo').classList.add('err');
+    }
+  });
+  const ini = parseISO($('fechaInicio').value), fin = parseISO($('fechaFin').value);
+  if(ini && fin && fin < ini){
+    faltan.push('La fecha de fin no puede ser anterior a la de inicio');
+    $('fechaFin').closest('.campo').classList.add('err');
+  }
+  if(!$('tarjeta').value.trim() && !$('clabe').value.trim()){
+    faltan.push('Captura la tarjeta o la CLABE para poder depositar');
+    $('tarjeta').closest('.campo').classList.add('err');
+    $('clabe').closest('.campo').classList.add('err');
+  }
+  if(faltan.length){
+    msg('Falta: ' + faltan.join(' · '), 'error');
+    const p = document.querySelector('.campo.err input, .campo.err textarea');
+    if(p){ p.scrollIntoView({block:'center', behavior:'smooth'}); p.focus({preventScroll:true}); }
+    return false;
+  }
+  return true;
+}
+
+function msg(t, tipo){
+  const m = $('msg');
+  m.textContent = t || '';
+  m.className = 'msg ' + (tipo || '');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PDF — formato oficial
+   ══════════════════════════════════════════════════════════════ */
+const W = 215.9, M = 10;
+const fw = W - M * 2;
+
+function construirPDF(d){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'letter' });
+  doc.setDrawColor(...AZL);
+  doc.setLineWidth(0.3);
+
+  const box = (x, y, w, h, bg) => {
+    if(bg){ doc.setFillColor(...bg); doc.rect(x, y, w, h, 'FD'); }
+    else { doc.rect(x, y, w, h, 'S'); }
+  };
+
+  const txt = (str, x, y, w, h, o) => {
+    o = o || {};
+    const size  = o.size  || 8;
+    const pad   = o.pad === undefined ? 1.6 : o.pad;
+    const align = o.align || 'left';
+    doc.setFont('helvetica', o.bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    doc.setTextColor(...(o.color || NGR));
+    const lines = doc.splitTextToSize(String(str === null || str === undefined ? '' : str), w - pad * 2);
+    const lh = size * 0.3528 * 1.18;
+    const ty = y + (h - lines.length * lh) / 2 + lh * 0.78;
+    const tx = align === 'center' ? x + w / 2 : x + pad;
+    doc.text(lines, tx, ty, { align: align === 'center' ? 'center' : 'left', baseline:'alphabetic' });
+  };
+
+  const cell = (label, value, x, y, w, h, lw, bg, o) => {
+    o = o || {};
+    box(x, y, lw, h, bg || AZC);
+    box(x + lw, y, w - lw, h, o.valBg || BLN);
+    txt(label, x, y, lw, h, { size:o.lSize || 6.8, bold:true });
+    txt(value, x + lw, y, w - lw, h, { size:o.vSize || 8, align:o.vAlign, bold:o.vBold });
+  };
+
+  let y = 10;
+
+  /* ── FOLIO + CONSECUTIVO (arriba a la derecha, amarillo) ── */
+  box(W - M - 60, y, 32, 7, AML);
+  txt('FOLIO: ' + (d.folio || ''), W - M - 60, y, 32, 7, { size:7.5, bold:true, align:'center' });
+  box(W - M - 28, y, 28, 7, AML);
+  txt(d.consecutivo, W - M - 28, y, 28, 7, { size:7.5, bold:true, align:'center' });
+
+  /* ── LOGO + TÍTULO ── */
+  const hy = y + 8, hh = 20;
+  box(M, hy, fw, hh, BLN);
+  if(LOGO){
+    try{
+      const tipo = LOGO.indexOf('image/png') > -1 ? 'PNG' : 'JPEG';
+      doc.addImage(LOGO, tipo, M + 3, hy + 2, 38, 16);
+    }catch(_){ txt('MDreieck', M + 3, hy, 40, hh, { size:15, bold:true, color:AZL }); }
+  }else{
+    txt('MDreieck', M + 3, hy, 40, hh, { size:15, bold:true, color:AZL });
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13.5);
+  doc.setTextColor(...AZL);
+  doc.text('Formato-Solicitud para pago de viáticos', M + 45 + (fw - 45) / 2, hy + hh / 2 + 1.8, { align:'center' });
+  y = hy + hh;
+
+  /* ── COLUMNAS ── */
+  const col1 = fw * 0.55, col2 = fw - col1;
+  const x1 = M, x2 = M + col1;
+
+  /* Columna derecha */
+  let yr = y;
+  cell('Fecha de solicitud:', d.fechaSolicitud, x2, yr, col2, 9, 34, AZC); yr += 9;
+  box(x2, yr, col2, 7, AZC);
+  txt('Datos bancarios', x2, yr, col2, 7, { size:7.5, bold:true, align:'center' }); yr += 7;
+  cell('Banco:', d.banco, x2, yr, col2, 8, 34, AZC); yr += 8;
+  cell('Sucursal:', d.sucursal, x2, yr, col2, 8, 34, AZC); yr += 8;
+  cell('No. de tarjeta:', d.tarjeta, x2, yr, col2, 8, 34, AZC); yr += 8;
+  cell('CLABE interbancaria:', d.clabe, x2, yr, col2, 8, 34, AZC); yr += 8;
+  cell('Importe calculado\npor costos:', '', x2, yr, col2, 10, 34, AZC, { valBg:GRS }); yr += 10;
+  cell('Fecha en que requieren la\ntransferencia de pago:', fmt(d.fechaTransferencia), x2, yr, col2, 10, 34, AZC); yr += 10;
+  cell('Nombre del Cliente:', d.cliente, x2, yr, col2, 12, 34, AZC, { vSize:7.2 }); yr += 12;
+  cell('No. Ticket:', d.ticket, x2, yr, col2, 7, 34, AZC); yr += 7;
+  cell('No. Consecutivo:', d.consecutivo, x2, yr, col2, 7, 34, AZC, { valBg:AML, vBold:true, vAlign:'center' }); yr += 7;
+
+  /* Columna izquierda — la última celda se estira para casar con la derecha */
+  let yl = y;
+  const hFijas = 9 + 10 + 16 + 16 + 9;
+  const hServicio = Math.max(12, (yr - y) - hFijas);
+
+  cell('Área Solicitante:', d.area, x1, yl, col1, 9, 42, AZC); yl += 9;
+  cell('Nombre de quien solicita:', d.solicitante, x1, yl, col1, 10, 42, AZC); yl += 10;
+  cell('Nombre completo del trabajador:\n(A quien se depositarán los viáticos)', d.trabajador, x1, yl, col1, 16, 55, AZC, { lSize:6.2 }); yl += 16;
+
+  /* Fechas del viaje: etiqueta a la izquierda + dos sub-filas */
+  box(x1, yl, 30, 16, AZC);
+  txt('Fecha del viaje', x1, yl, 30, 16, { size:6.8, bold:true });
+  cell('Inicia el:', fmt(d.fechaInicio), x1 + 30, yl, col1 - 30, 8, 22, AZC);
+  cell('Finaliza el:', fmt(d.fechaFin), x1 + 30, yl + 8, col1 - 30, 8, 22, AZC);
+  yl += 16;
+
+  cell('Total de días:', d.totalDias, x1, yl, col1, 9, 42, AZC, { vBold:true }); yl += 9;
+  cell('Tipo de servicio:', d.tipoServicio, x1, yl, col1, hServicio, 42, AZC, { vSize:7.5 }); yl += hServicio;
+
+  y = Math.max(yl, yr);
+
+  /* ── DATOS ADICIONALES ── */
+  cell('Datos adicionales\ndel viaje:', d.datosAdicionales, M, y, fw, 14, 42, AZC, { vBold:true, vAlign:'center' });
+  y += 14;
+
+  /* ── OBSERVACIONES ── */
+  cell('observaciones', d.observaciones, M, y, fw, 26, 42, GRS, { vSize:7.5 });
+  y += 26;
+
+  /* ── FIRMAS ── */
+  const fc = fw / 3;
+  ['SOLICITADO POR:', 'REVISADO POR EL ÁREA DE COSTOS:', 'AUTORIZA LA SOLICITUD'].forEach((t, i) => {
+    box(M + fc * i, y, fc, 8, AZC);
+    txt(t, M + fc * i, y, fc, 8, { size:6.8, bold:true, align:'center' });
+  });
+  y += 8;
+  for(let i = 0; i < 3; i++){
+    box(M + fc * i, y, fc, 26, BLN);
+    doc.setDrawColor(...NGR); doc.setLineWidth(0.2);
+    doc.line(M + fc * i + 8, y + 17, M + fc * (i + 1) - 8, y + 17);
+    doc.setDrawColor(...AZL); doc.setLineWidth(0.3);
+  }
+  txt(d.trabajador, M, y + 17, fc, 8, { size:7, align:'center' });
+  y += 26;
+
+  /* ── NOTA IMPORTANTE ── */
+  box(M, y, fw, 13, AML);
+  txt(NOTA, M, y, fw, 13, { size:6.5, pad:2.5 });
+  y += 13;
+
+  return doc;
+}
+
+function nombreArchivo(d){
+  const limpio = (d.trabajador || 'Trabajador')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9 ]/g, '').trim().replace(/\s+/g, '');
+  return d.consecutivo + '_' + limpio + '.pdf';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ACCIONES
+   ══════════════════════════════════════════════════════════════ */
+$('btnPreview').addEventListener('click', () => {
+  if(!validar()) return;
+  const d = datos();
+  const url = construirPDF(d).output('bloburl');
+  window.open(url, '_blank');
+  msg('Vista previa abierta. El consecutivo avanza hasta que guardes.', 'info');
+});
+
+$('btnDescargar').addEventListener('click', () => {
+  if(!validar()) return;
+  const d = datos();
+  construirPDF(d).save(nombreArchivo(d));
+  msg('PDF descargado. Todavía no se envía a Drive.', 'info');
+});
+
+$('btnGuardar').addEventListener('click', async () => {
+  if(!validar()) return;
+  if(APPS_URL.indexOf('http') !== 0){
+    msg('Configura APPS_URL en el archivo antes de guardar. Mientras tanto usa Descargar PDF.', 'error');
+    return;
+  }
+  const btn = $('btnGuardar');
+  btn.disabled = true;
+  msg('Enviando…', 'info');
+
+  const d = datos();
+  const doc = construirPDF(d);
+  const nombre = nombreArchivo(d);
+
+  const payload = Object.assign({}, d, {
+    folderId: FOLDER_ID,
+    sheetId:  SHEET_ID,
+    pdf: { name:nombre, type:'application/pdf', data: doc.output('datauristring').split(',')[1] }
+  });
+
+  try{
+    let ok = false;
+    try{
+      const r = await fetch(APPS_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect:'follow'
+      });
+      const t = await r.text();
+      if(t.indexOf('error') === 0) throw new Error(t);
+      ok = true;
+    }catch(e){
+      if(String(e.message).indexOf('error') === 0) throw e;
+      /* CORS bloqueó la lectura de la respuesta: reenvía a ciegas */
+      await fetch(APPS_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(payload) });
+      ok = true;
+    }
+    if(ok){
+      doc.save(nombre);
+      msg('Guardado en Drive y registrado en la hoja. Copia descargada: ' + nombre, 'ok');
+      avanzarConsec();
+      limpiar();
+    }
+  }catch(err){
+    doc.save(nombre);
+    msg('No se pudo enviar (' + err.message + '). Se descargó el PDF para que lo envíes a mano.', 'error');
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+function limpiar(){
+  ['solicitante','trabajador','fechaInicio','fechaFin','totalDias','tipoServicio',
+   'cliente','banco','sucursal','tarjeta','clabe','fechaTransferencia','ticket','observaciones']
+    .forEach(id => { $(id).value = ''; });
+  $('datosAdicionales').value = 'CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INICIO
+   ══════════════════════════════════════════════════════════════ */
+(function init(){
+  const iso = hoyISO();
+  $('fechaSolicitud').dataset.iso = iso;
+  $('fechaSolicitud').value = fmt(iso);
+  $('fechaInicio').addEventListener('change', calcDias);
+  $('fechaFin').addEventListener('change', calcDias);
+  loadConsec();
+  cargarLogoGuardado();
+})();
+</script>
+</body>
+</html>
