@@ -157,11 +157,11 @@
         <legend>Quién solicita</legend>
 
         <div class="campo" id="c-area">
-          <label for="area">Área solicitante <span class="req">*</span></label>
+          <label for="area">Proyecto o área solicitante <span class="req">*</span></label>
           <select id="area"></select>
           <div class="nuevo" id="n-area" hidden>
-            <h4>Nueva área</h4>
-            <div class="campo"><label>Nombre del área</label><input id="n-area-nombre" placeholder="Redes"></div>
+            <h4>Nuevo proyecto o área</h4>
+            <div class="campo"><label>Nombre del proyecto o área</label><input id="n-area-nombre" placeholder="Redes"></div>
             <div class="campo">
               <label>Siglas para el consecutivo</label>
               <input id="n-area-sigla" maxlength="8" placeholder="REDES" style="text-transform:uppercase">
@@ -447,7 +447,7 @@ function pintarAreas(seleccion){
   s.innerHTML = '';
   s.add(new Option('— Selecciona —', ''));
   areas().forEach(a => s.add(new Option(a.nombre + '  (' + a.sigla + ')', a.nombre)));
-  s.add(new Option('+  Agregar otra área', ETIQUETA_NUEVO));
+  s.add(new Option('+  Agregar otro proyecto o área', ETIQUETA_NUEVO));
   if(actual) s.value = actual;
 }
 
@@ -767,19 +767,19 @@ function pintarEjemploSigla(){
 $('btnGuardarArea').addEventListener('click', () => {
   const nombre = $('n-area-nombre').value.trim();
   const sg = limpiaSigla($('n-area-sigla').value);
-  if(!nombre){ msg('Escribe el nombre del área.', 'error'); return; }
+  if(!nombre){ msg('Escribe el nombre del proyecto o área.', 'error'); return; }
   if(!sg){ msg('Escribe las siglas del área.', 'error'); return; }
   const ya = areas().filter(a => a.sigla === sg)[0];
   if(ya){ msg('Las siglas ' + sg + ' ya las usa ' + ya.nombre + '. Elige otras.', 'error'); return; }
   if(areas().filter(a => a.nombre.toLowerCase() === nombre.toLowerCase())[0]){
-    msg('Esa área ya existe en la lista.', 'error'); return;
+    msg('Ese proyecto o área ya existe en la lista.', 'error'); return;
   }
   agregarArea({ nombre: nombre, sigla: sg });
   cerrarNuevo('area');
   $('n-area-sigla').dataset.tocado = '';
   pintarAreas(nombre);
   loadConsec();
-  msg('Área guardada. Sus solicitudes empiezan en VIA-' + sg + '-001.', 'ok');
+  msg('Guardado. Sus solicitudes empiezan en VIA-' + sg + '-001.', 'ok');
 });
 
 $('btnFirmar').addEventListener('click', abrirFirma);
@@ -928,7 +928,7 @@ function datos(){
 }
 
 const OBLIGATORIOS = [
-  ['area','Área solicitante'],
+  ['area','Proyecto o área solicitante'],
   ['solicitante','Quién solicita'],
   ['trabajador','Trabajador'],
   ['fechaInicio','Fecha de inicio'],
@@ -1061,7 +1061,7 @@ function construirPDF(d){
   const hFijas = 8 + 8 + 14 + 16 + 8 + 8;
   const hServicio = Math.max(14, (yr - y) - hFijas);
 
-  cell('Área Solicitante:', d.area, x1, yl, col1, 8, L_LAB); yl += 8;
+  cell('Proyecto o Área Solicitante:', d.area, x1, yl, col1, 8, L_LAB); yl += 8;
   cell('Nombre de quien solicita:', d.solicitante, x1, yl, col1, 8, L_LAB); yl += 8;
   cell('Nombre completo del trabajador:\n(A quien se depositarán los viáticos)', d.trabajador,
        x1, yl, col1, 14, L_LAB, { lSize:6.2 }); yl += 14;
