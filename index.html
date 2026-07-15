@@ -234,6 +234,23 @@
           </div>
         </div>
 
+        <div class="campo" id="c-destino">
+          <label for="destino">Destino: dirección o zona <span class="req">*</span>
+            <span class="ayuda">A dónde llegan. Sirve para buscar el hospedaje.</span>
+          </label>
+          <select id="destino"></select>
+          <div class="nuevo" id="n-destino" hidden>
+            <h4>Nuevo destino</h4>
+            <div class="campo">
+              <textarea id="n-destino-v" style="min-height:56px" placeholder="Av. Reforma 123, Col. Centro, Puebla, Pue."></textarea>
+            </div>
+            <div class="botones">
+              <button type="button" class="primario" data-add="destino">Guardar destino</button>
+              <button type="button" class="gris" data-cancel="destino">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
         <div class="campo" id="c-tipoServicio">
           <label for="tipoServicio">Tipo de servicio o motivo <span class="req">*</span></label>
           <select id="tipoServicio"></select>
@@ -367,6 +384,7 @@ const $ = id => document.getElementById(id);
    ══════════════════════════════════════════════════════════════ */
 const BASE = {
   solicitante: ['Francisco Ramirez'],
+  destino:     ['Municipio de Puebla, Pue.'],
   cliente:     ['Dirección de Gestión de Riesgos del Municipio de Puebla'],
   tipoServicio:['Revisión de 7 sitios en el Municipio de Puebla'],
   datosAdicionales: ['CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE']
@@ -460,6 +478,7 @@ function pintarSelect(id, valores, seleccion, textoNuevo){
 
 const CATALOGOS = [
   ['solicitante', 'Agregar otro solicitante'],
+  ['destino', 'Agregar otro destino'],
   ['cliente', 'Agregar otro cliente'],
   ['tipoServicio', 'Agregar otro servicio'],
   ['datosAdicionales', 'Agregar otra opción']
@@ -894,6 +913,7 @@ function datos(){
     fechaFin:      $('fechaFin').value,
     totalDias:     $('totalDias').value,
     personas:      $('personas').value,
+    destino:       $('destino').value,
     tipoServicio:  $('tipoServicio').value,
     datosAdicionales: $('datosAdicionales').value,
     cliente:       $('cliente').value,
@@ -914,6 +934,7 @@ const OBLIGATORIOS = [
   ['fechaInicio','Fecha de inicio'],
   ['fechaFin','Fecha de fin'],
   ['personas','No. de personas'],
+  ['destino','Destino'],
   ['tipoServicio','Tipo de servicio'],
   ['fechaTransferencia','Fecha de transferencia'],
   ['cliente','Cliente']
@@ -1057,6 +1078,10 @@ function construirPDF(d){
   cell('Tipo de servicio:', d.tipoServicio, x1, yl, col1, hServicio, L_LAB, { vSize:7.5 }); yl += hServicio;
 
   y = Math.max(yl, yr);
+
+  /* ── DESTINO ── */
+  cell('Destino (dirección o zona):', d.destino, M, y, fw, 12, L_LAB, { vSize:8 });
+  y += 12;
 
   /* ── DATOS ADICIONALES ── */
   cell('Datos adicionales del viaje:', d.datosAdicionales, M, y, fw, 12, L_LAB, { vBold:true, vAlign:'center' });
