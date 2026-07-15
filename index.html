@@ -119,6 +119,8 @@
     .barra .sub{display:none}
     .barra h1{font-size:13px}
     .barra img{height:32px}
+    .folio-badge{padding:5px 8px}
+    .folio-badge .nu{font-size:13px}
     .acciones{flex-wrap:wrap;padding:10px 12px}
     .acciones .msg{width:100%;margin:0 0 6px}
     .acciones button{flex:1;padding:11px 8px;font-size:13px}
@@ -136,7 +138,7 @@
   </div>
   <div class="folio-badge">
     <span class="et">Consecutivo</span>
-    <span class="nu" id="badgeConsec">VIA-MD-001</span>
+    <span class="nu" id="badgeConsec">VIA-INFRA-001</span>
   </div>
 </header>
 
@@ -159,9 +161,14 @@
           <select id="area"></select>
           <div class="nuevo" id="n-area" hidden>
             <h4>Nueva área</h4>
-            <div class="campo"><input id="n-area-v" placeholder="Nombre del área"></div>
+            <div class="campo"><label>Nombre del área</label><input id="n-area-nombre" placeholder="Redes"></div>
+            <div class="campo">
+              <label>Siglas para el consecutivo</label>
+              <input id="n-area-sigla" maxlength="8" placeholder="REDES" style="text-transform:uppercase">
+              <span class="ayuda">Sus solicitudes se numerarán <b id="n-area-ej">VIA-REDES-001</b></span>
+            </div>
             <div class="botones">
-              <button type="button" class="primario" data-add="area">Guardar área</button>
+              <button type="button" class="primario" id="btnGuardarArea">Guardar área</button>
               <button type="button" class="gris" data-cancel="area">Cancelar</button>
             </div>
           </div>
@@ -359,12 +366,21 @@ const $ = id => document.getElementById(id);
    Lo que agregue el usuario se suma en localStorage.
    ══════════════════════════════════════════════════════════════ */
 const BASE = {
-  area:        ['Infraestructura', 'Sistemas', 'Laboratorio', 'Operaciones', 'Administración', 'Comercial'],
   solicitante: ['Francisco Ramirez'],
   cliente:     ['Dirección de Gestión de Riesgos del Municipio de Puebla'],
   tipoServicio:['Revisión de 7 sitios en el Municipio de Puebla'],
   datosAdicionales: ['CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE']
 };
+
+/* Cada área tiene su sigla y su propio contador */
+const BASE_AREAS = [
+  { nombre:'Infraestructura', sigla:'INFRA' },
+  { nombre:'Sistemas',        sigla:'SIST'  },
+  { nombre:'Laboratorio',     sigla:'LAB'   },
+  { nombre:'Operaciones',     sigla:'OPER'  },
+  { nombre:'Administración',  sigla:'ADMIN' },
+  { nombre:'Comercial',       sigla:'COM'   }
+];
 
 const BASE_TRABAJADORES = [
   {
@@ -391,6 +407,32 @@ function agregar(clave, valor){
     localStorage.setItem('via_md_cat_' + clave, JSON.stringify(g));
   }
 }
+function areas(){
+  try{
+    const g = JSON.parse(localStorage.getItem('via_md_areas') || '[]');
+    const nombres = BASE_AREAS.map(a => a.nombre);
+    return BASE_AREAS.concat(g.filter(a => nombres.indexOf(a.nombre) === -1));
+  }catch(_){ return BASE_AREAS.slice(); }
+}
+function agregarArea(a){
+  const g = JSON.parse(localStorage.getItem('via_md_areas') || '[]');
+  g.push(a);
+  localStorage.setItem('via_md_areas', JSON.stringify(g));
+}
+function areaActual(){
+  const n = $('area').value;
+  return areas().filter(a => a.nombre === n)[0] || null;
+}
+function pintarAreas(seleccion){
+  const s = $('area');
+  const actual = seleccion !== undefined ? seleccion : s.value;
+  s.innerHTML = '';
+  s.add(new Option('— Selecciona —', ''));
+  areas().forEach(a => s.add(new Option(a.nombre + '  (' + a.sigla + ')', a.nombre)));
+  s.add(new Option('+  Agregar otra área', ETIQUETA_NUEVO));
+  if(actual) s.value = actual;
+}
+
 function trabajadores(){
   try{
     const g = JSON.parse(localStorage.getItem('via_md_trabajadores') || '[]');
@@ -417,7 +459,6 @@ function pintarSelect(id, valores, seleccion, textoNuevo){
 }
 
 const CATALOGOS = [
-  ['area', 'Agregar otra área'],
   ['solicitante', 'Agregar otro solicitante'],
   ['cliente', 'Agregar otro cliente'],
   ['tipoServicio', 'Agregar otro servicio'],
@@ -467,11 +508,14 @@ document.addEventListener('change', e => {
     e.target.value = '';
     if(id === 'trabajador') mostrarBanco();
     if(id === 'solicitante') pintarFirmaZona();
+    if(id === 'area') loadConsec();
     abrirNuevo(id);
   }else if(id === 'trabajador'){
     mostrarBanco();
   }else if(id === 'solicitante'){
     pintarFirmaZona();
+  }else if(id === 'area'){
+    loadConsec();
   }
 });
 
@@ -583,7 +627,7 @@ function abrirFirma(){
   ctxF.lineWidth = 2.2;
   ctxF.lineCap = 'round';
   ctxF.lineJoin = 'round';
-  ctxF.strokeStyle = '#101040';
+  ctxF.strokeStyle = '#1A1080';   /* azul marino MDreieck */
   huboTrazo = false;
   $('firmaFile').value = '';
   $('n-firma').scrollIntoView({ block:'center', behavior:'smooth' });
@@ -644,19 +688,80 @@ function recortar(cv){
   return out;
 }
 
-/* Convierte el papel blanco en transparente para las fotos subidas */
+/* Tiñe el trazo de azul marino, conservando la transparencia y el suavizado */
+const AZUL_FIRMA = [26, 16, 128];
+function tenirAzul(cv){
+  const c = cv.getContext('2d');
+  const img = c.getImageData(0, 0, cv.width, cv.height);
+  const d = img.data;
+  for(let i = 0; i < d.length; i += 4){
+    if(d[i+3] > 0){
+      d[i]   = AZUL_FIRMA[0];
+      d[i+1] = AZUL_FIRMA[1];
+      d[i+2] = AZUL_FIRMA[2];
+    }
+  }
+  c.putImageData(img, 0, 0);
+  return cv;
+}
+
+/* Quita el papel blanco y tiñe la tinta de azul marino */
 function quitarFondo(cv){
   const c = cv.getContext('2d');
   const img = c.getImageData(0, 0, cv.width, cv.height);
   const d = img.data;
   for(let i = 0; i < d.length; i += 4){
     const prom = (d[i] + d[i+1] + d[i+2]) / 3;
-    if(prom > 185){ d[i+3] = 0; }
-    else if(prom > 120){ d[i+3] = Math.round(255 * (185 - prom) / 65); }
+    let a;
+    if(prom > 185) a = 0;
+    else if(prom > 120) a = Math.round(255 * (185 - prom) / 65);
+    else a = 255;
+    d[i]   = 26;    /* azul marino MDreieck */
+    d[i+1] = 16;
+    d[i+2] = 128;
+    d[i+3] = a;
   }
   c.putImageData(img, 0, 0);
   return cv;
 }
+
+/* ── Alta de área con sus siglas ── */
+function limpiaSigla(v){
+  return v.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+}
+$('n-area-nombre').addEventListener('input', e => {
+  if(!$('n-area-sigla').dataset.tocado){
+    $('n-area-sigla').value = limpiaSigla(e.target.value).slice(0, 5);
+    pintarEjemploSigla();
+  }
+});
+$('n-area-sigla').addEventListener('input', e => {
+  e.target.dataset.tocado = '1';
+  e.target.value = limpiaSigla(e.target.value);
+  pintarEjemploSigla();
+});
+function pintarEjemploSigla(){
+  const sg = $('n-area-sigla').value || '···';
+  $('n-area-ej').textContent = 'VIA-' + sg + '-001';
+}
+$('btnGuardarArea').addEventListener('click', () => {
+  const nombre = $('n-area-nombre').value.trim();
+  const sg = limpiaSigla($('n-area-sigla').value);
+  if(!nombre){ msg('Escribe el nombre del área.', 'error'); return; }
+  if(!sg){ msg('Escribe las siglas del área.', 'error'); return; }
+  const ya = areas().filter(a => a.sigla === sg)[0];
+  if(ya){ msg('Las siglas ' + sg + ' ya las usa ' + ya.nombre + '. Elige otras.', 'error'); return; }
+  if(areas().filter(a => a.nombre.toLowerCase() === nombre.toLowerCase())[0]){
+    msg('Esa área ya existe en la lista.', 'error'); return;
+  }
+  agregarArea({ nombre: nombre, sigla: sg });
+  cerrarNuevo('area');
+  $('n-area-sigla').dataset.tocado = '';
+  pintarAreas(nombre);
+  loadConsec();
+  msg('Área guardada. Sus solicitudes empiezan en VIA-' + sg + '-001.', 'ok');
+});
 
 $('btnFirmar').addEventListener('click', abrirFirma);
 $('btnCancelarFirma').addEventListener('click', cerrarFirma);
@@ -723,13 +828,31 @@ $('btnGuardarFirma').addEventListener('click', () => {
    ══════════════════════════════════════════════════════════════ */
 let consec = 1;
 
+function sigla(){
+  const a = areaActual();
+  return a ? a.sigla : '';
+}
+function claveConsec(sg){ return 'via_md_consec_' + sg; }
+
 function loadConsec(){
-  const stored = parseInt(localStorage.getItem('via_md_consec') || '0', 10);
+  const sg = sigla();
+  if(!sg){
+    consec = 0;
+    $('badgeConsec').textContent = 'VIA-···-000';
+    return;
+  }
+  const stored = parseInt(localStorage.getItem(claveConsec(sg)) || '0', 10);
   consec = (isNaN(stored) ? 0 : stored) + 1;
-  $('badgeConsec').textContent = 'VIA-MD-' + String(consec).padStart(3, '0');
+  $('badgeConsec').textContent = textoConsec();
+}
+function textoConsec(){
+  const sg = sigla();
+  return sg ? 'VIA-' + sg + '-' + String(consec).padStart(3, '0') : '';
 }
 function avanzarConsec(){
-  localStorage.setItem('via_md_consec', String(consec));
+  const sg = sigla();
+  if(!sg) return;
+  localStorage.setItem(claveConsec(sg), String(consec));
   loadConsec();
 }
 
@@ -762,7 +885,7 @@ function calcDias(){
 function datos(){
   const t = trabajadorActual() || {};
   return {
-    consecutivo:   'VIA-MD-' + String(consec).padStart(3, '0'),
+    consecutivo:   textoConsec(),
     fechaSolicitud:fmt($('fechaSolicitud').dataset.iso),
     area:          $('area').value,
     solicitante:   $('solicitante').value,
@@ -1065,9 +1188,9 @@ function limpiar(){
   CATALOGOS.forEach(([clave, texto]) => pintarSelect(clave, leer(clave, BASE[clave]), '', texto));
   /* preselección de lo más usado */
   $('datosAdicionales').value = 'CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE';
-  $('area').value = 'Infraestructura';
   $('solicitante').value = 'Francisco Ramirez';
 
+  pintarAreas('Infraestructura');
   pintarTrabajadores('');
   pintarFirmaZona();
   $('fechaInicio').addEventListener('change', calcDias);
