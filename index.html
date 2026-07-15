@@ -79,6 +79,20 @@
   .nuevo input,.nuevo textarea{font-size:13px;padding:7px 9px}
   .nuevo .botones{display:flex;gap:8px;margin-top:10px}
   .nuevo button{padding:7px 12px;font-size:13px}
+  /* ── Firma ── */
+  .firma-zona{
+    display:flex;align-items:center;gap:10px;margin-top:8px;
+    border:1px solid var(--linea);border-radius:4px;padding:8px 10px;background:#FAFBFF;
+  }
+  .firma-zona .prev{flex:1;min-width:0;height:46px;display:flex;align-items:center}
+  .firma-zona .prev img{max-height:44px;max-width:100%;object-fit:contain}
+  .firma-zona .prev .sin{font-size:12px;color:#8b90a5}
+  .firma-zona button{padding:6px 10px;font-size:12px;flex:none}
+  #firmaCanvas{
+    width:100%;height:150px;background:#fff;border:1px solid var(--linea);border-radius:4px;
+    touch-action:none;cursor:crosshair;display:block;
+  }
+  .firma-guia{font-size:11px;color:#8b90a5;margin:6px 0 0;text-align:center}
   .banco-datos{background:#F7F8FE;border-radius:4px;padding:10px 12px;font-size:12px;color:var(--tenue);margin-bottom:12px;border:1px solid var(--linea)}
   .banco-datos b{color:var(--texto);font-weight:600}
   .banco-datos div{margin:2px 0}
@@ -164,6 +178,27 @@
               <button type="button" class="gris" data-cancel="solicitante">Cancelar</button>
             </div>
           </div>
+
+          <div class="firma-zona" id="firmaZona" hidden>
+            <div class="prev" id="firmaPrev"><span class="sin">Sin firma cargada</span></div>
+            <button type="button" id="btnFirmar">Firmar</button>
+            <button type="button" class="gris" id="btnQuitarFirma" hidden>Quitar</button>
+          </div>
+
+          <div class="nuevo" id="n-firma" hidden>
+            <h4>Firma de <span id="firmaNombre"></span></h4>
+            <canvas id="firmaCanvas"></canvas>
+            <p class="firma-guia">Firma con el dedo o el mouse dentro del recuadro</p>
+            <div class="campo" style="margin-top:10px">
+              <label>…o sube una foto de tu firma en papel blanco</label>
+              <input type="file" id="firmaFile" accept="image/*" style="border:0;padding:0;font-size:12px">
+            </div>
+            <div class="botones">
+              <button type="button" class="primario" id="btnGuardarFirma">Guardar firma</button>
+              <button type="button" class="gris" id="btnLimpiarFirma">Limpiar</button>
+              <button type="button" class="gris" id="btnCancelarFirma">Cancelar</button>
+            </div>
+          </div>
         </div>
       </fieldset>
 
@@ -181,9 +216,15 @@
           </div>
         </div>
 
-        <div class="campo">
-          <label for="totalDias">Total de días <span class="ayuda">Se calcula solo</span></label>
-          <input id="totalDias" readonly>
+        <div class="fila-2">
+          <div class="campo">
+            <label for="totalDias">Total de días <span class="ayuda">Se calcula solo</span></label>
+            <input id="totalDias" readonly>
+          </div>
+          <div class="campo" id="c-personas">
+            <label for="personas">No. de personas que viajan <span class="req">*</span></label>
+            <input type="number" id="personas" min="1" step="1" value="1" inputmode="numeric">
+          </div>
         </div>
 
         <div class="campo" id="c-tipoServicio">
@@ -274,19 +315,6 @@
           </div>
         </div>
 
-        <div class="campo" id="c-folio">
-          <label for="folio">Folio</label>
-          <select id="folio"></select>
-          <div class="nuevo" id="n-folio" hidden>
-            <h4>Nuevo folio</h4>
-            <div class="campo"><input id="n-folio-v" placeholder="COOINS"></div>
-            <div class="botones">
-              <button type="button" class="primario" data-add="folio">Guardar folio</button>
-              <button type="button" class="gris" data-cancel="folio">Cancelar</button>
-            </div>
-          </div>
-        </div>
-
         <div class="campo">
           <label for="fechaSolicitud">Fecha de solicitud</label>
           <input id="fechaSolicitud" readonly>
@@ -335,8 +363,7 @@ const BASE = {
   solicitante: ['Francisco Ramirez'],
   cliente:     ['Dirección de Gestión de Riesgos del Municipio de Puebla'],
   tipoServicio:['Revisión de 7 sitios en el Municipio de Puebla'],
-  datosAdicionales: ['CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE'],
-  folio:       ['COOINS']
+  datosAdicionales: ['CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE']
 };
 
 const BASE_TRABAJADORES = [
@@ -394,8 +421,7 @@ const CATALOGOS = [
   ['solicitante', 'Agregar otro solicitante'],
   ['cliente', 'Agregar otro cliente'],
   ['tipoServicio', 'Agregar otro servicio'],
-  ['datosAdicionales', 'Agregar otra opción'],
-  ['folio', 'Agregar otro folio']
+  ['datosAdicionales', 'Agregar otra opción']
 ];
 
 function pintarTrabajadores(seleccion){
@@ -440,9 +466,12 @@ document.addEventListener('change', e => {
   if(e.target.value === ETIQUETA_NUEVO){
     e.target.value = '';
     if(id === 'trabajador') mostrarBanco();
+    if(id === 'solicitante') pintarFirmaZona();
     abrirNuevo(id);
   }else if(id === 'trabajador'){
     mostrarBanco();
+  }else if(id === 'solicitante'){
+    pintarFirmaZona();
   }
 });
 
@@ -478,7 +507,215 @@ document.addEventListener('click', e => {
   cerrarNuevo(add);
   const cat = CATALOGOS.filter(c => c[0] === add)[0];
   pintarSelect(add, leer(add, BASE[add]), valor, cat[1]);
-  msg('Guardado. Ya aparece en la lista.', 'ok');
+  if(add === 'solicitante'){
+    pintarFirmaZona();
+    msg('Solicitante guardado. Dale Firmar para dejar su firma cargada.', 'ok');
+  }else{
+    msg('Guardado. Ya aparece en la lista.', 'ok');
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   FIRMAS — imagen guardada por nombre de persona
+   { "Francisco Ramirez": {data:'data:image/png;base64,…', w:600, h:180} }
+   ══════════════════════════════════════════════════════════════ */
+function firmas(){
+  try{ return JSON.parse(localStorage.getItem('via_md_firmas') || '{}'); }
+  catch(_){ return {}; }
+}
+function firmaDe(nombre){
+  return nombre ? (firmas()[nombre] || null) : null;
+}
+function guardarFirma(nombre, f){
+  const t = firmas();
+  t[nombre] = f;
+  try{
+    localStorage.setItem('via_md_firmas', JSON.stringify(t));
+    return true;
+  }catch(_){
+    msg('No hay espacio para guardar la firma. Borra alguna firma vieja e intenta de nuevo.', 'error');
+    return false;
+  }
+}
+function borrarFirma(nombre){
+  const t = firmas();
+  delete t[nombre];
+  localStorage.setItem('via_md_firmas', JSON.stringify(t));
+}
+
+function pintarFirmaZona(){
+  const nombre = $('solicitante').value;
+  const zona = $('firmaZona');
+  if(!nombre){ zona.hidden = true; cerrarFirma(); return; }
+  zona.hidden = false;
+  const f = firmaDe(nombre);
+  const prev = $('firmaPrev');
+  if(f){
+    prev.innerHTML = '';
+    const img = new Image();
+    img.src = f.data;
+    img.alt = 'Firma de ' + nombre;
+    prev.appendChild(img);
+    $('btnFirmar').textContent = 'Cambiar';
+    $('btnQuitarFirma').hidden = false;
+  }else{
+    prev.innerHTML = '<span class="sin">Sin firma cargada</span>';
+    $('btnFirmar').textContent = 'Firmar';
+    $('btnQuitarFirma').hidden = true;
+  }
+}
+
+/* ── Canvas ── */
+let ctxF = null, dibujando = false, huboTrazo = false;
+
+function abrirFirma(){
+  const nombre = $('solicitante').value;
+  if(!nombre){ msg('Primero elige quién solicita.', 'error'); return; }
+  $('firmaNombre').textContent = nombre;
+  $('n-firma').hidden = false;
+  const cv = $('firmaCanvas');
+  const ancho = cv.getBoundingClientRect().width;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width  = Math.round(ancho * dpr);
+  cv.height = Math.round(150 * dpr);
+  ctxF = cv.getContext('2d');
+  ctxF.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctxF.lineWidth = 2.2;
+  ctxF.lineCap = 'round';
+  ctxF.lineJoin = 'round';
+  ctxF.strokeStyle = '#101040';
+  huboTrazo = false;
+  $('firmaFile').value = '';
+  $('n-firma').scrollIntoView({ block:'center', behavior:'smooth' });
+}
+function cerrarFirma(){
+  $('n-firma').hidden = true;
+  dibujando = false;
+}
+
+(function canvasEventos(){
+  const cv = $('firmaCanvas');
+  const pos = e => {
+    const r = cv.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  };
+  cv.addEventListener('pointerdown', e => {
+    if(!ctxF) return;
+    dibujando = true; huboTrazo = true;
+    const [x, y] = pos(e);
+    ctxF.beginPath(); ctxF.moveTo(x, y);
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', e => {
+    if(!dibujando || !ctxF) return;
+    const [x, y] = pos(e);
+    ctxF.lineTo(x, y); ctxF.stroke();
+    e.preventDefault();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev =>
+    cv.addEventListener(ev, () => { dibujando = false; })
+  );
+})();
+
+/* Recorta el espacio vacío alrededor del trazo */
+function recortar(cv){
+  const c = cv.getContext('2d');
+  const d = c.getImageData(0, 0, cv.width, cv.height).data;
+  let x0 = cv.width, y0 = cv.height, x1 = -1, y1 = -1;
+  for(let y = 0; y < cv.height; y++){
+    for(let x = 0; x < cv.width; x++){
+      if(d[(y * cv.width + x) * 4 + 3] > 12){
+        if(x < x0) x0 = x; if(x > x1) x1 = x;
+        if(y < y0) y0 = y; if(y > y1) y1 = y;
+      }
+    }
+  }
+  if(x1 < 0) return null;
+  const pad = 8;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(cv.width - 1, x1 + pad); y1 = Math.min(cv.height - 1, y1 + pad);
+  let w = x1 - x0 + 1, h = y1 - y0 + 1;
+  let ew = w, eh = h;
+  if(ew > 700){ eh = Math.round(h * 700 / w); ew = 700; }
+  const out = document.createElement('canvas');
+  out.width = ew; out.height = eh;
+  out.getContext('2d').drawImage(cv, x0, y0, w, h, 0, 0, ew, eh);
+  return out;
+}
+
+/* Convierte el papel blanco en transparente para las fotos subidas */
+function quitarFondo(cv){
+  const c = cv.getContext('2d');
+  const img = c.getImageData(0, 0, cv.width, cv.height);
+  const d = img.data;
+  for(let i = 0; i < d.length; i += 4){
+    const prom = (d[i] + d[i+1] + d[i+2]) / 3;
+    if(prom > 185){ d[i+3] = 0; }
+    else if(prom > 120){ d[i+3] = Math.round(255 * (185 - prom) / 65); }
+  }
+  c.putImageData(img, 0, 0);
+  return cv;
+}
+
+$('btnFirmar').addEventListener('click', abrirFirma);
+$('btnCancelarFirma').addEventListener('click', cerrarFirma);
+$('btnLimpiarFirma').addEventListener('click', () => {
+  const cv = $('firmaCanvas');
+  if(ctxF) ctxF.clearRect(0, 0, cv.width, cv.height);
+  huboTrazo = false;
+  $('firmaFile').value = '';
+});
+$('btnQuitarFirma').addEventListener('click', () => {
+  const nombre = $('solicitante').value;
+  if(!nombre) return;
+  borrarFirma(nombre);
+  pintarFirmaZona();
+  msg('Firma quitada.', 'info');
+});
+
+$('firmaFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if(w > 900){ h = Math.round(h * 900 / w); w = 900; }
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      quitarFondo(cv);
+      const rec = recortar(cv);
+      if(!rec){ msg('No se detectó la firma en la imagen. Usa una foto con buena luz sobre papel blanco.', 'error'); return; }
+      /* la pinta en el canvas para que se vea antes de guardar */
+      const c2 = $('firmaCanvas');
+      const dpr = window.devicePixelRatio || 1;
+      ctxF.clearRect(0, 0, c2.width, c2.height);
+      const cw = c2.width / dpr, ch = c2.height / dpr;
+      const esc = Math.min(cw / rec.width, ch / rec.height, 1);
+      ctxF.drawImage(rec, (cw - rec.width * esc) / 2, (ch - rec.height * esc) / 2, rec.width * esc, rec.height * esc);
+      huboTrazo = true;
+      msg('Imagen cargada. Revisa cómo se ve y dale Guardar firma.', 'info');
+    };
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+});
+
+$('btnGuardarFirma').addEventListener('click', () => {
+  const nombre = $('solicitante').value;
+  if(!nombre){ msg('Primero elige quién solicita.', 'error'); return; }
+  if(!huboTrazo){ msg('Firma en el recuadro o sube una imagen antes de guardar.', 'error'); return; }
+  const rec = recortar($('firmaCanvas'));
+  if(!rec){ msg('El recuadro está vacío.', 'error'); return; }
+  const f = { data: rec.toDataURL('image/png'), w: rec.width, h: rec.height };
+  if(guardarFirma(nombre, f)){
+    cerrarFirma();
+    pintarFirmaZona();
+    msg('Firma guardada para ' + nombre + '. Se estampará sola en el PDF.', 'ok');
+  }
 });
 
 /* ══════════════════════════════════════════════════════════════
@@ -526,7 +763,6 @@ function datos(){
   const t = trabajadorActual() || {};
   return {
     consecutivo:   'VIA-MD-' + String(consec).padStart(3, '0'),
-    folio:         $('folio').value,
     fechaSolicitud:fmt($('fechaSolicitud').dataset.iso),
     area:          $('area').value,
     solicitante:   $('solicitante').value,
@@ -534,6 +770,7 @@ function datos(){
     fechaInicio:   $('fechaInicio').value,
     fechaFin:      $('fechaFin').value,
     totalDias:     $('totalDias').value,
+    personas:      $('personas').value,
     tipoServicio:  $('tipoServicio').value,
     datosAdicionales: $('datosAdicionales').value,
     cliente:       $('cliente').value,
@@ -542,7 +779,8 @@ function datos(){
     tarjeta:       t.tarjeta || '',
     clabe:         t.clabe || '',
     fechaTransferencia: $('fechaTransferencia').value,
-    observaciones: $('observaciones').value.trim()
+    observaciones: $('observaciones').value.trim(),
+    firma:         firmaDe($('solicitante').value)
   };
 }
 
@@ -552,6 +790,7 @@ const OBLIGATORIOS = [
   ['trabajador','Trabajador'],
   ['fechaInicio','Fecha de inicio'],
   ['fechaFin','Fecha de fin'],
+  ['personas','No. de personas'],
   ['tipoServicio','Tipo de servicio'],
   ['fechaTransferencia','Fecha de transferencia'],
   ['cliente','Cliente']
@@ -595,8 +834,12 @@ const fw = W - M * 2;
 function construirPDF(d){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'mm', format:'letter' });
-  doc.setDrawColor(...AZL);
-  doc.setLineWidth(0.3);
+
+  const L_LAB = 52;   /* ancho de la columna de etiquetas, izquierda */
+  const R_LAB = 42;   /* ancho de la columna de etiquetas, derecha   */
+
+  const linea = (g) => { doc.setDrawColor(...AZL); doc.setLineWidth(g || 0.25); };
+  linea();
 
   const box = (x, y, w, h, bg) => {
     if(bg){ doc.setFillColor(...bg); doc.rect(x, y, w, h, 'FD'); }
@@ -606,115 +849,130 @@ function construirPDF(d){
   const txt = (str, x, y, w, h, o) => {
     o = o || {};
     const size  = o.size || 8;
-    const pad   = o.pad === undefined ? 1.6 : o.pad;
+    const pad   = o.pad === undefined ? 2 : o.pad;
     const align = o.align || 'left';
     doc.setFont('helvetica', o.bold ? 'bold' : 'normal');
     doc.setFontSize(size);
     doc.setTextColor(...(o.color || NGR));
     const lines = doc.splitTextToSize(String(str === null || str === undefined ? '' : str), w - pad * 2);
-    const lh = size * 0.3528 * 1.18;
-    const ty = y + (h - lines.length * lh) / 2 + lh * 0.78;
+    const lh = size * 0.3528 * 1.2;
+    const ty = y + (h - lines.length * lh) / 2 + lh * 0.76;
     const tx = align === 'center' ? x + w / 2 : x + pad;
     doc.text(lines, tx, ty, { align: align === 'center' ? 'center' : 'left', baseline:'alphabetic' });
   };
 
-  const cell = (label, value, x, y, w, h, lw, bg, o) => {
+  /* etiqueta azul + valor blanco, con el corte siempre en la misma vertical */
+  const cell = (label, value, x, y, w, h, lw, o) => {
     o = o || {};
-    box(x, y, lw, h, bg || AZC);
+    box(x, y, lw, h, o.labBg || AZC);
     box(x + lw, y, w - lw, h, o.valBg || BLN);
-    txt(label, x, y, lw, h, { size:o.lSize || 6.8, bold:true });
+    txt(label, x, y, lw, h, { size:o.lSize || 6.6, bold:true, color:AZL });
     txt(value, x + lw, y, w - lw, h, { size:o.vSize || 8, align:o.vAlign, bold:o.vBold });
   };
 
-  let y = 10;
+  let y = 11;
+  const yTop = y;
 
-  /* ── FOLIO + CONSECUTIVO (arriba a la derecha, amarillo) ── */
-  box(W - M - 60, y, 32, 7, AML);
-  txt('FOLIO: ' + (d.folio || ''), W - M - 60, y, 32, 7, { size:7.5, bold:true, align:'center' });
-  box(W - M - 28, y, 28, 7, AML);
-  txt(d.consecutivo, W - M - 28, y, 28, 7, { size:7.5, bold:true, align:'center' });
+  /* ── CONSECUTIVO (chip amarillo, arriba a la derecha) ── */
+  box(W - M - 40, y, 40, 8, AML);
+  txt(d.consecutivo, W - M - 40, y, 40, 8, { size:9, bold:true, align:'center' });
+  y += 11;
 
-  /* ── LOGO + TÍTULO ── */
-  const hy = y + 8, hh = 20;
-  box(M, hy, fw, hh, BLN);
-  const lh_ = 16, lw_ = lh_ * LOGO_RATIO;
+  /* ── ENCABEZADO: logo + título ── */
+  const hh = 22;
+  box(M, y, fw, hh, BLN);
+  const lgH = 15, lgW = lgH * LOGO_RATIO;
   try{
-    doc.addImage(LOGO, 'JPEG', M + 3, hy + (hh - lh_) / 2, lw_, lh_);
+    doc.addImage(LOGO, 'JPEG', M + 5, y + (hh - lgH) / 2, lgW, lgH);
   }catch(_){
-    txt('M Dreieck', M + 3, hy, 40, hh, { size:15, bold:true, color:AZL });
+    txt('M Dreieck', M + 5, y, 40, hh, { size:14, bold:true, color:AZL });
   }
-  const tx0 = M + 6 + lw_;
+  const tx0 = M + 10 + lgW;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13.5);
+  doc.setFontSize(14);
   doc.setTextColor(...AZL);
-  doc.text('Formato-Solicitud para pago de viáticos', tx0 + (W - M - tx0) / 2, hy + hh / 2 + 1.8, { align:'center' });
-  y = hy + hh;
+  doc.text('Formato-Solicitud para pago de viáticos', tx0 + (W - M - tx0) / 2, y + hh / 2 + 1.6, { align:'center' });
+  y += hh;
 
-  /* ── COLUMNAS ── */
+  /* ── CUERPO EN DOS COLUMNAS ── */
   const col1 = fw * 0.55, col2 = fw - col1;
   const x1 = M, x2 = M + col1;
 
   /* Derecha */
   let yr = y;
-  cell('Fecha de solicitud:', d.fechaSolicitud, x2, yr, col2, 9, 34, AZC); yr += 9;
+  cell('Fecha de solicitud:', d.fechaSolicitud, x2, yr, col2, 8, R_LAB); yr += 8;
   box(x2, yr, col2, 7, AZC);
-  txt('Datos bancarios', x2, yr, col2, 7, { size:7.5, bold:true, align:'center' }); yr += 7;
-  cell('Banco:', d.banco, x2, yr, col2, 8, 34, AZC); yr += 8;
-  cell('Sucursal:', d.sucursal, x2, yr, col2, 8, 34, AZC); yr += 8;
-  cell('No. de tarjeta:', d.tarjeta, x2, yr, col2, 8, 34, AZC); yr += 8;
-  cell('CLABE interbancaria:', d.clabe, x2, yr, col2, 8, 34, AZC); yr += 8;
-  cell('Importe calculado\npor costos:', '', x2, yr, col2, 10, 34, AZC, { valBg:GRS }); yr += 10;
-  cell('Fecha en que requieren la\ntransferencia de pago:', fmt(d.fechaTransferencia), x2, yr, col2, 10, 34, AZC); yr += 10;
-  cell('Nombre del Cliente:', d.cliente, x2, yr, col2, 13, 34, AZC, { vSize:7.2 }); yr += 13;
-  cell('No. Consecutivo:', d.consecutivo, x2, yr, col2, 8, 34, AZC, { valBg:AML, vBold:true, vAlign:'center' }); yr += 8;
+  txt('Datos bancarios', x2, yr, col2, 7, { size:7.5, bold:true, align:'center', color:AZL }); yr += 7;
+  cell('Banco:', d.banco, x2, yr, col2, 8, R_LAB); yr += 8;
+  cell('Sucursal:', d.sucursal, x2, yr, col2, 8, R_LAB); yr += 8;
+  cell('No. de tarjeta:', d.tarjeta, x2, yr, col2, 8, R_LAB); yr += 8;
+  cell('CLABE interbancaria:', d.clabe, x2, yr, col2, 8, R_LAB); yr += 8;
+  cell('Importe calculado por costos:', '', x2, yr, col2, 9, R_LAB, { valBg:GRS }); yr += 9;
+  cell('Fecha en que requieren la\ntransferencia de pago:', fmt(d.fechaTransferencia), x2, yr, col2, 9, R_LAB); yr += 9;
+  cell('Nombre del Cliente:', d.cliente, x2, yr, col2, 13, R_LAB, { vSize:7.2 }); yr += 13;
+  cell('No. Consecutivo:', d.consecutivo, x2, yr, col2, 8, R_LAB, { valBg:AML, vBold:true, vAlign:'center' }); yr += 8;
 
-  /* Izquierda — "Tipo de servicio" se estira para casar alturas */
+  /* Izquierda — "Tipo de servicio" absorbe la diferencia para cerrar parejo */
   let yl = y;
-  const hFijas = 9 + 10 + 16 + 16 + 9;
-  const hServicio = Math.max(12, (yr - y) - hFijas);
+  const hFijas = 8 + 8 + 14 + 16 + 8 + 8;
+  const hServicio = Math.max(14, (yr - y) - hFijas);
 
-  cell('Área Solicitante:', d.area, x1, yl, col1, 9, 42, AZC); yl += 9;
-  cell('Nombre de quien solicita:', d.solicitante, x1, yl, col1, 10, 42, AZC); yl += 10;
-  cell('Nombre completo del trabajador:\n(A quien se depositarán los viáticos)', d.trabajador, x1, yl, col1, 16, 55, AZC, { lSize:6.2 }); yl += 16;
+  cell('Área Solicitante:', d.area, x1, yl, col1, 8, L_LAB); yl += 8;
+  cell('Nombre de quien solicita:', d.solicitante, x1, yl, col1, 8, L_LAB); yl += 8;
+  cell('Nombre completo del trabajador:\n(A quien se depositarán los viáticos)', d.trabajador,
+       x1, yl, col1, 14, L_LAB, { lSize:6.2 }); yl += 14;
 
-  box(x1, yl, 30, 16, AZC);
-  txt('Fecha del viaje', x1, yl, 30, 16, { size:6.8, bold:true });
-  cell('Inicia el:', fmt(d.fechaInicio), x1 + 30, yl, col1 - 30, 8, 22, AZC);
-  cell('Finaliza el:', fmt(d.fechaFin), x1 + 30, yl + 8, col1 - 30, 8, 22, AZC);
+  /* Fecha del viaje: etiqueta principal + dos sub-filas alineadas al mismo corte */
+  box(x1, yl, L_LAB, 16, AZC);
+  txt('Fecha del viaje:', x1, yl, L_LAB, 16, { size:6.6, bold:true, color:AZL });
+  cell('Inicia el:', fmt(d.fechaInicio), x1 + L_LAB, yl, col1 - L_LAB, 8, 20, { labBg:BLN, lSize:6.4 });
+  cell('Finaliza el:', fmt(d.fechaFin), x1 + L_LAB, yl + 8, col1 - L_LAB, 8, 20, { labBg:BLN, lSize:6.4 });
   yl += 16;
 
-  cell('Total de días:', d.totalDias, x1, yl, col1, 9, 42, AZC, { vBold:true }); yl += 9;
-  cell('Tipo de servicio:', d.tipoServicio, x1, yl, col1, hServicio, 42, AZC, { vSize:7.5 }); yl += hServicio;
+  cell('Total de días:', d.totalDias, x1, yl, col1, 8, L_LAB, { vBold:true }); yl += 8;
+  cell('No. de personas que viajan:', d.personas, x1, yl, col1, 8, L_LAB, { vBold:true }); yl += 8;
+  cell('Tipo de servicio:', d.tipoServicio, x1, yl, col1, hServicio, L_LAB, { vSize:7.5 }); yl += hServicio;
 
   y = Math.max(yl, yr);
 
   /* ── DATOS ADICIONALES ── */
-  cell('Datos adicionales\ndel viaje:', d.datosAdicionales, M, y, fw, 14, 42, AZC, { vBold:true, vAlign:'center' });
-  y += 14;
+  cell('Datos adicionales del viaje:', d.datosAdicionales, M, y, fw, 12, L_LAB, { vBold:true, vAlign:'center' });
+  y += 12;
 
   /* ── OBSERVACIONES ── */
-  cell('observaciones', d.observaciones, M, y, fw, 26, 42, GRS, { vSize:7.5 });
+  cell('Observaciones:', d.observaciones, M, y, fw, 26, L_LAB, { labBg:GRS, vSize:7.5 });
   y += 26;
 
   /* ── FIRMAS ── */
   const fc = fw / 3;
   ['SOLICITADO POR:', 'REVISADO POR EL ÁREA DE COSTOS:', 'AUTORIZA LA SOLICITUD'].forEach((t, i) => {
-    box(M + fc * i, y, fc, 8, AZC);
-    txt(t, M + fc * i, y, fc, 8, { size:6.8, bold:true, align:'center' });
+    box(M + fc * i, y, fc, 7, AZC);
+    txt(t, M + fc * i, y, fc, 7, { size:6.6, bold:true, align:'center', color:AZL });
   });
-  y += 8;
-  for(let i = 0; i < 3; i++){
-    box(M + fc * i, y, fc, 26, BLN);
-    doc.setDrawColor(...NGR); doc.setLineWidth(0.2);
-    doc.line(M + fc * i + 8, y + 17, M + fc * (i + 1) - 8, y + 17);
-    doc.setDrawColor(...AZL); doc.setLineWidth(0.3);
+  y += 7;
+  for(let i = 0; i < 3; i++) box(M + fc * i, y, fc, 26, BLN);
+
+  /* firma de quien solicita, encima de la línea */
+  if(d.firma && d.firma.data){
+    const maxW = fc - 20, maxH = 12;
+    let fwd = maxW, fhd = maxW * d.firma.h / d.firma.w;
+    if(fhd > maxH){ fhd = maxH; fwd = maxH * d.firma.w / d.firma.h; }
+    try{ doc.addImage(d.firma.data, 'PNG', M + fc / 2 - fwd / 2, y + 16.5 - fhd, fwd, fhd); }catch(_){}
   }
-  txt(d.solicitante, M, y + 17, fc, 8, { size:7, align:'center' });
+  doc.setDrawColor(120, 120, 130); doc.setLineWidth(0.2);
+  for(let i = 0; i < 3; i++) doc.line(M + fc * i + 9, y + 17, M + fc * (i + 1) - 9, y + 17);
+  linea();
+  txt(d.solicitante, M, y + 17, fc, 7, { size:7, align:'center' });
   y += 26;
 
   /* ── NOTA IMPORTANTE ── */
-  box(M, y, fw, 13, AML);
-  txt(NOTA, M, y, fw, 13, { size:6.5, pad:2.5 });
+  box(M, y, fw, 12, AML);
+  txt(NOTA, M, y, fw, 12, { size:6.4, pad:3 });
+  y += 12;
+
+  /* ── Marco exterior ── */
+  linea(0.6);
+  doc.rect(M, yTop + 11, fw, y - yTop - 11, 'S');
 
   return doc;
 }
@@ -754,9 +1012,10 @@ $('btnGuardar').addEventListener('click', async () => {
   const payload = Object.assign({}, d, {
     folderId: FOLDER_ID,
     sheetId:  SHEET_ID,
-    ticket:   '',
+    firmado:  d.firma ? 'Sí' : 'No',
     pdf: { name:nombre, type:'application/pdf', data: doc.output('datauristring').split(',')[1] }
   });
+  delete payload.firma;
 
   try{
     try{
@@ -786,6 +1045,7 @@ $('btnGuardar').addEventListener('click', async () => {
 
 function limpiar(){
   ['fechaInicio','fechaFin','totalDias','fechaTransferencia','observaciones'].forEach(id => { $(id).value = ''; });
+  $('personas').value = '1';
   $('trabajador').value = '';
   $('tipoServicio').value = '';
   mostrarBanco();
@@ -804,12 +1064,12 @@ function limpiar(){
 
   CATALOGOS.forEach(([clave, texto]) => pintarSelect(clave, leer(clave, BASE[clave]), '', texto));
   /* preselección de lo más usado */
-  $('folio').value = 'COOINS';
   $('datosAdicionales').value = 'CASETAS, VIÁTICOS, ALIMENTOS Y HOSPEDAJE';
   $('area').value = 'Infraestructura';
   $('solicitante').value = 'Francisco Ramirez';
 
   pintarTrabajadores('');
+  pintarFirmaZona();
   $('fechaInicio').addEventListener('change', calcDias);
   $('fechaFin').addEventListener('change', calcDias);
   loadConsec();
