@@ -103,7 +103,7 @@
     padding:12px 16px;display:flex;gap:10px;justify-content:flex-end;align-items:center;
     box-shadow:0 -2px 14px rgba(20,22,45,.07);z-index:20;
   }
-  .acciones .msg{margin-right:auto;font-size:13px;font-weight:600;min-height:18px}
+  .acciones .msg{margin-right:auto;font-size:12.5px;font-weight:600;min-height:18px;max-height:56px;overflow-y:auto;line-height:1.35;max-width:52%}
   .acciones .msg.ok{color:var(--ok)}
   .acciones .msg.error{color:var(--error)}
   .acciones .msg.info{color:var(--tenue);font-weight:500}
@@ -322,6 +322,15 @@
           <label for="fechaTransferencia">Fecha en que requieren la transferencia <span class="req">*</span></label>
           <input type="date" id="fechaTransferencia">
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Diagnóstico</legend>
+        <p style="font-size:12px;color:var(--tenue);margin:0 0 10px">
+          Si una solicitud no se guarda, aprieta aquí: te dice exactamente qué paso falló.
+        </p>
+        <button type="button" id="btnProbar" style="width:100%">Probar conexión con Drive y la hoja</button>
+        <pre id="diagResultado" hidden style="white-space:pre-wrap;word-break:break-word;font-size:11px;background:#F7F8FE;border:1px solid var(--linea);border-radius:4px;padding:10px;margin:10px 0 12px;color:var(--texto);font-family:ui-monospace,Menlo,Consolas,monospace"></pre>
       </fieldset>
 
       <fieldset>
@@ -1166,28 +1175,70 @@ $('btnGuardar').addEventListener('click', async () => {
   delete payload.firma;
 
   try{
-    try{
-      const r = await fetch(APPS_URL, {
-        method:'POST',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload),
-        redirect:'follow'
-      });
-      const t = await r.text();
-      if(t.indexOf('error') === 0) throw new Error(t);
-    }catch(e){
-      if(String(e.message).indexOf('error') === 0) throw e;
-      await fetch(APPS_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(payload) });
+    /* Una sola petición: si se reintenta, se guarda el PDF dos veces */
+    const r = await fetch(APPS_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect:'follow'
+    });
+    const t = await r.text();
+
+    let res;
+    try{ res = JSON.parse(t); }
+    catch(_){
+      throw new Error('El script respondió algo que no entiendo. ¿Publicaste la versión nueva? Respuesta: ' + t.slice(0, 100));
     }
+
+    if(!res.ok){
+      const partes = [];
+      if(String(res.drive).indexOf('ERROR') === 0) partes.push('Drive → ' + res.drive);
+      if(String(res.sheet).indexOf('ERROR') === 0) partes.push('Hoja → ' + res.sheet);
+      throw new Error(partes.join('  ||  ') || 'falla desconocida');
+    }
+
     doc.save(nombre);
-    msg('Guardado en Drive y registrado en la hoja. Copia descargada: ' + nombre, 'ok');
+    msg('Listo: PDF en Drive y fila en la hoja. Se descargó ' + nombre, 'ok');
     avanzarConsec();
     limpiar();
   }catch(err){
     doc.save(nombre);
-    msg('No se pudo enviar (' + err.message + '). Se descargó el PDF para que lo envíes a mano.', 'error');
+    const detalle = String(err.message || err);
+    msg('NO se guardó. ' + detalle + ' — El PDF se descargó para que no lo pierdas. El consecutivo NO avanzó.', 'error');
+    console.error('Detalle del fallo:', err);
   }finally{
     btn.disabled = false;
+  }
+});
+
+/* ── Prueba de conexión ── */
+$('btnProbar').addEventListener('click', async () => {
+  const b = $('btnProbar');
+  b.disabled = true;
+  msg('Probando conexión…', 'info');
+  const url = APPS_URL + '?folderId=' + encodeURIComponent(FOLDER_ID) + '&sheetId=' + encodeURIComponent(SHEET_ID);
+  const caja = $('diagResultado');
+  caja.hidden = false;
+  try{
+    const r = await fetch(url, { redirect:'follow' });
+    const t = await r.text();
+    let res;
+    try{ res = JSON.parse(t); }
+    catch(_){
+      caja.textContent = 'El script no respondió JSON. Casi siempre significa que la implementación quedó en "Solo yo" o que no publicaste versión nueva.\n\nRespuesta:\n' + t.slice(0, 400);
+      msg('El script responde, pero no como debe.', 'error');
+      return;
+    }
+    caja.textContent = 'Versión del script: ' + (res.version || 'vieja, republica') +
+                       '\n\nDrive:\n' + res.drive +
+                       '\n\nHoja:\n' + res.sheet;
+    msg(res.ok ? 'Conexión correcta: Drive y hoja accesibles.' : 'Hay un problema, míralo abajo.', res.ok ? 'ok' : 'error');
+  }catch(err){
+    caja.textContent = 'No pude ni contactar al script: ' + err.message +
+      '\n\nRevisa que la implementación esté publicada con acceso "Cualquier usuario".';
+    msg('No hay conexión con el script.', 'error');
+  }finally{
+    b.disabled = false;
   }
 });
 
