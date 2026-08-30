@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A1080">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Comprobación">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Comprobación de viáticos — M Dreieck</title>
+<style>
+  :root{
+    --azul:#1A1080; --azul-2:#2A1FB0; --amarillo:#FFE600;
+    --gris:#F0F0F0; --linea:#D4D9E8; --texto:#151626; --tenue:#5D6480;
+    --ok:#0F7B4F; --ok-bg:#E7F5EE; --pend:#B8860B; --pend-bg:#FBF3DC;
+    --error:#B3261E; --error-bg:#FDF3F2; --wa:#25D366;
+    --radio:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:#F5F6FA;color:var(--texto);font-size:15px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;overscroll-behavior-y:contain;
+  }
+  main{max-width:760px;margin:0 auto;padding:16px}
+  .con-syncbar{padding-bottom:96px}
+
+  .barra{background:var(--azul);color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:30;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  .barra .volver{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:8px;font-size:20px;line-height:1;padding:8px 13px;cursor:pointer;flex:none;width:auto}
+  .barra .estado-nube{white-space:nowrap}
+  .barra .titulo{min-width:0;flex:1}
+  .barra h1{font-size:15px;font-weight:700;margin:0;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barra .sub{font-size:10px;font-weight:500;opacity:.7;letter-spacing:.08em;text-transform:uppercase}
+  .estado-nube{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;background:rgba(255,255,255,.14);padding:5px 9px;border-radius:20px;flex:none}
+  .estado-nube .punto{width:8px;height:8px;border-radius:50%;background:#8b90a5}
+  .estado-nube.on .punto{background:#4ADE80}
+  .estado-nube.off .punto{background:#F87171}
+
+  .card{background:#fff;border:1px solid var(--linea);border-radius:var(--radio);padding:16px;margin-bottom:14px}
+  .card h2{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--azul);margin:0 0 12px}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--tenue);margin:12px 0 5px}
+  label:first-child{margin-top:0}
+  .ayuda{font-weight:400;font-size:11px;color:#8b90a5;display:block;margin-top:2px}
+  input,select,textarea{width:100%;font:inherit;font-size:15px;color:var(--texto);padding:11px;border:1px solid var(--linea);border-radius:8px;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)}
+  .fila-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  button{font:inherit;font-weight:700;font-size:15px;padding:12px 16px;border-radius:9px;cursor:pointer;border:1px solid var(--azul);background:#fff;color:var(--azul);width:100%}
+  button.primario{background:var(--azul);color:#fff}
+  button.wa{background:var(--wa);border-color:var(--wa);color:#fff}
+  button:active{transform:scale(.99)}
+  button:disabled{opacity:.5}
+  button:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+
+  .home-intro{color:var(--tenue);font-size:13px;margin:2px 2px 14px}
+  .viaje-card{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px;margin-bottom:11px;cursor:pointer;display:flex;gap:13px;align-items:center;transition:border-color .12s,box-shadow .12s}
+  .viaje-card:hover{border-color:var(--azul);box-shadow:0 2px 10px rgba(26,16,128,.08)}
+  .viaje-card .vc-ico{width:46px;height:46px;border-radius:11px;background:linear-gradient(135deg,var(--azul),var(--azul-2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+  .viaje-card .vc-info{flex:1;min-width:0}
+  .viaje-card .vc-nombre{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .viaje-card .vc-lugar{font-size:13px;color:var(--azul);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .viaje-card .vc-periodo{font-size:12px;color:var(--tenue)}
+  .viaje-card .vc-lado{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+  .viaje-card .vc-cuenta{font-size:12px;color:var(--tenue);font-weight:600}
+  .viaje-card .vc-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+  .vc-badge.abierto{background:#EEF0FB;color:var(--azul)}
+  .vc-badge.terminado{background:var(--ok-bg);color:var(--ok)}
+  .vc-badge.pend{background:var(--pend-bg);color:var(--pend)}
+  .btn-nuevo{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--azul);color:#fff;border:0;border-radius:12px;padding:15px;font-size:15px;font-weight:700;width:100%;margin-bottom:16px;cursor:pointer}
+  .btn-nuevo .mas{font-size:20px;line-height:1}
+  #btnInstalar{display:none;background:#EEF0FB;border:1px solid #C7CEF0;color:var(--azul);border-radius:12px;padding:13px;font-weight:700;width:100%;margin-bottom:14px;cursor:pointer}
+  a.wa{display:none;background:var(--wa);color:#fff;border:1px solid var(--wa);border-radius:9px;padding:12px 16px;font-weight:700;font-size:15px;text-align:center;text-decoration:none;margin-top:10px}
+
+  .viaje-resumen{background:linear-gradient(135deg,var(--azul),var(--azul-2));color:#fff;border-radius:var(--radio);padding:15px 16px;margin-bottom:14px}
+  .viaje-resumen .quien{font-size:17px;font-weight:800;line-height:1.2}
+  .viaje-resumen .lugar{font-size:13px;opacity:.95;margin-top:2px;font-weight:600}
+  .viaje-resumen .meta{font-size:12.5px;opacity:.8;margin-top:3px}
+  .viaje-resumen .contador{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2)}
+  .viaje-resumen .contador div{flex:1}
+  .viaje-resumen .contador b{display:block;font-size:20px;font-weight:800;line-height:1}
+  .viaje-resumen .contador span{font-size:9.5px;opacity:.8;letter-spacing:.02em;text-transform:uppercase}
+  .viaje-resumen .editar{background:rgba(255,255,255,.16);border:0;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;width:auto;margin-top:12px;cursor:pointer}
+
+  .captura{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .cap-btn{border:1.5px dashed var(--azul);border-radius:10px;padding:18px 10px;text-align:center;background:#F7F8FE;cursor:pointer;color:var(--azul)}
+  .cap-btn .ico{font-size:26px;display:block;margin-bottom:4px}
+  .cap-btn .lbl{font-size:13px;font-weight:700}
+  .cap-btn input{display:none}
+  .btn-vale{margin-top:10px;background:#EEF0FB;border:1px solid #C7CEF0;color:var(--azul)}
+
+  .nota{background:#FBF3DC;border:1px solid #EAD8A0;border-radius:8px;padding:10px 12px;font-size:12px;color:#7A5B00;margin-top:10px;line-height:1.4}
+
+  .previa{margin-top:14px;display:none}
+  .previa.activa{display:block}
+  .previa-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .previa-item{position:relative;width:74px;height:74px;border-radius:8px;overflow:hidden;border:1px solid var(--linea);background:var(--gris)}
+  .previa-item img{width:100%;height:100%;object-fit:cover}
+  .previa-item .doc{display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;font-weight:700;color:var(--error);text-align:center;padding:3px}
+  .previa-item .doc.xml{color:var(--ok)}
+  .previa-item .quita{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:0;width:20px;height:20px;border-radius:50%;font-size:13px;line-height:1;padding:0;cursor:pointer}
+
+  .vale-form{background:#EEF0FB;border:1px solid #C7CEF0;border-radius:10px;padding:14px;margin-top:12px;display:none}
+  .vale-form.activa{display:block}
+
+  .filtros{display:flex;gap:8px;margin:0 2px 10px;overflow-x:auto;padding-bottom:2px}
+  .filtro{border:1px solid var(--linea);background:#fff;color:var(--tenue);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:20px;white-space:nowrap;cursor:pointer;width:auto}
+  .filtro.activo{background:var(--azul);border-color:var(--azul);color:#fff}
+
+  .doc{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--linea);border-left-width:4px;border-radius:10px;padding:11px 12px;margin-bottom:9px}
+  .doc.archivo{border-left-color:var(--azul)}
+  .doc.vale{border-left-color:var(--pend)}
+  .doc .mini{width:44px;height:44px;border-radius:7px;object-fit:cover;flex:none;background:var(--gris)}
+  .doc .mini-doc,.doc .mini-vale{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:7px;flex:none;font-size:17px}
+  .doc .mini-doc{background:#FBEBEA;color:var(--error)}
+  .doc .mini-vale{background:#FBF3DC;color:var(--pend)}
+  .doc .info{flex:1;min-width:0}
+  .doc .info .concepto{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .doc .info .detalle{font-size:12px;color:var(--tenue);margin-top:1px}
+  .doc .info .tel{font-size:11.5px;color:var(--azul);margin-top:2px}
+  .doc .lado{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+  .doc .estado{font-size:14px}
+  .doc .mini-btn{background:none;border:0;font-size:16px;width:auto;padding:3px 4px;cursor:pointer;color:var(--tenue)}
+
+  .vacio{text-align:center;color:var(--tenue);padding:26px 16px;font-size:13.5px}
+  .vacio .ico{font-size:32px;display:block;margin-bottom:8px;opacity:.5}
+  .seccion-tit{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px}
+  .seccion-tit h3{font-size:13px;font-weight:700;color:var(--texto);margin:0}
+  .seccion-tit .cuenta{font-size:12px;color:var(--tenue);font-weight:600}
+
+  .acciones-viaje{display:flex;gap:10px;margin:16px 0}
+  .acciones-viaje button{flex:1}
+
+  .sync-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--linea);padding:12px 16px calc(env(safe-area-inset-bottom) + 12px);display:flex;align-items:center;gap:12px;box-shadow:0 -2px 14px rgba(20,22,45,.08)}
+  .sync-bar .resumen{flex:1;min-width:0}
+  .sync-bar .resumen .l1{font-size:13px;font-weight:700}
+  .sync-bar .resumen .l2{font-size:11.5px;color:var(--tenue)}
+  .sync-bar button{width:auto;padding:12px 20px;white-space:nowrap}
+
+  .msg{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--texto);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:80;max-width:90%;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;text-align:center}
+  .msg.ver{opacity:1}
+  .msg.err{background:var(--error)}
+  .msg.ok{background:var(--ok)}
+  .oculto{display:none !important}
+
+  /* ── Impresión de vales en hoja carta (4 por hoja) ── */
+  #printArea{display:none}
+  @media print{
+    body{background:#fff}
+    #scHome,#scNuevo,#scViaje,.sync-bar,.msg{display:none !important}
+    #printArea{display:block !important}
+    @page{size:letter portrait;margin:12mm}
+    .print-pagina{page-break-after:always;break-after:page}
+    .print-pagina:last-child{page-break-after:auto;break-after:auto}
+    .print-header{font:700 12px/1.3 "Inter",Arial;color:#1A1080;margin-bottom:6mm;border-bottom:1px solid #1A1080;padding-bottom:3mm}
+    .print-grid{display:grid;grid-template-columns:1fr 1fr;gap:6mm;align-content:start}
+    .print-vale{border:1px solid #C7CEF0;border-radius:6px;overflow:hidden}
+    .print-vale img{display:block;width:100%;height:auto}
+  }</style>
+</head>
+<body>
+
+<!-- ════════════════ PANTALLA 1: MIS VIAJES ════════════════ -->
+<div id="scHome">
+  <header class="barra">
+    <button class="volver" id="btnHomeMenu" title="Menú">‹</button>
+    <div class="titulo"><h1>Mis viajes</h1><span class="sub">Comprobación de viáticos</span></div>
+    <div class="estado-nube off" id="nubeHome"><span class="punto"></span><span id="txtHome">Sin conexión</span></div>
+  </header>
+  <main>
+    <p class="home-intro">Cada viaje guarda sus comprobantes por separado. Sube tus fotos y documentos sobre la marcha; al terminar, envías todo a la nube y avisas.</p>
+    <button id="btnInstalar">📲 Instalar app en el teléfono</button>
+    <button class="btn-nuevo" id="btnNuevoViaje"><span class="mas">＋</span> Nuevo viaje</button>
+    <div id="listaViajes"></div>
+  </main>
+</div>
+
+<!-- ════════════════ PANTALLA 2: NUEVO / EDITAR VIAJE ════════════════ -->
+<div id="scNuevo" class="oculto">
+  <header class="barra">
+    <button class="volver" id="btnNuevoVolver" title="Volver">‹</button>
+    <div class="titulo"><h1 id="nuevoTitulo">Nuevo viaje</h1><span class="sub">Datos de la comisión</span></div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Datos del viaje</h2>
+      <label for="vNombre">Responsable de viáticos <span class="ayuda">A quién se le depositó (de quién son los gastos)</span></label>
+      <input id="vNombre" placeholder="Nombre completo" autocomplete="name">
+
+      <label for="vLugar">Lugar de comisión <span class="ayuda">Ciudad o sitio del viaje</span></label>
+      <input id="vLugar" placeholder="Ej. Monterrey, planta Saltillo">
+
+      <div class="fila-2">
+        <div><label for="vInicio">Fecha de inicio</label><input type="date" id="vInicio"></div>
+        <div><label for="vFin">Fecha de término</label><input type="date" id="vFin"></div>
+      </div>
+
+      <button class="primario" id="btnGuardarViaje" style="margin-top:18px">Guardar y abrir viaje</button>
+    </div>
+  </main>
+</div>
+
+<!-- ════════════════ PANTALLA 3: DENTRO DEL VIAJE ════════════════ -->
+<div id="scViaje" class="oculto">
+  <header class="barra">
+    <button class="volver" id="btnViajeVolver" title="Mis viajes">‹</button>
+    <div class="titulo"><h1 id="barraTitulo">Viaje</h1><span class="sub" id="barraFolio">Sin folio ligado</span></div>
+    <div class="estado-nube off" id="nubeViaje"><span class="punto"></span><span id="txtViaje">Sin conexión</span></div>
+  </header>
+  <main class="con-syncbar">
+
+    <div class="viaje-resumen">
+      <div class="quien" id="rNombre">—</div>
+      <div class="lugar" id="rLugar">—</div>
+      <div class="meta" id="rMeta">—</div>
+      <div class="contador">
+        <div><b id="rTotalDocs">0</b><span>Total</span></div>
+        <div><b id="rArch">0</b><span>Fotos/Docs</span></div>
+        <div><b id="rVales">0</b><span>Vales</span></div>
+        <div><b id="rPend">0</b><span>Sin enviar</span></div>
+      </div>
+      <button class="editar" id="btnEditarViaje">Editar datos del viaje</button>
+    </div>
+
+    <div class="card">
+      <h2>Agregar comprobante</h2>
+
+      <div id="zonaCaptura">
+        <div class="captura">
+          <label class="cap-btn"><span class="ico">📷</span><span class="lbl">Tomar foto</span><input type="file" id="inCamara" accept="image/*" capture="environment" multiple></label>
+          <label class="cap-btn"><span class="ico">📎</span><span class="lbl">Subir foto o documento</span><input type="file" id="inArchivo" accept="image/*,application/pdf,.xml" multiple></label>
+        </div>
+        <button class="btn-vale" id="btnModoVale">🎫 Generar vale (compra sin ticket)</button>
+
+        <div class="previa" id="previa">
+          <div class="previa-grid" id="previaGrid"></div>
+          <label>Teléfono del lugar <span class="ayuda">Para pedir la factura después</span></label>
+          <input id="cTelefono" type="tel" inputmode="tel" placeholder="Ej. 81 1234 5678">
+          <div class="nota">Si es <b>restaurante u hotel</b>, escribe aquí el teléfono para solicitar la factura. Algunos lugares como <b>OXXO o gasolineras</b> se facturan en línea con el ticket.</div>
+          <label>Nota <span class="ayuda">Opcional. Qué es este gasto</span></label>
+          <input id="cNota" placeholder="Ej. Comida, hospedaje, gasolina">
+          <button class="primario" id="btnGuardarDoc" style="margin-top:14px">Guardar comprobante</button>
+        </div>
+      </div>
+
+      <div class="vale-form" id="valeForm">
+        <div class="nota">Si realizaste una compra <b>sin ticket ni factura</b>, genera tu recibo (vale) con los datos de la compra.</div>
+        <label style="margin-top:12px">Concepto de la compra</label>
+        <input id="valeConcepto" placeholder="Ej. Propina, estacionamiento sin ticket">
+        <div class="fila-2" style="margin-top:8px">
+          <div><label>Monto</label><input id="valeMonto" type="number" inputmode="decimal" placeholder="0.00" step="0.01"></div>
+          <div><label>Fecha</label><input id="valeFecha" type="date"></div>
+        </div>
+        <label>Motivo / justificación</label>
+        <textarea id="valeMotivo" rows="2" placeholder="Por qué no hay factura ni ticket"></textarea>
+        <button class="primario" id="btnGuardarVale" style="margin-top:12px">Generar vale y guardar</button>
+        <button id="btnCancelarVale" style="margin-top:8px">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="seccion-tit"><h3>Comprobantes de este viaje</h3><span class="cuenta" id="cuentaLista">0</span></div>
+    <div class="filtros" id="filtros">
+      <button class="filtro activo" data-f="todos">Todos</button>
+      <button class="filtro" data-f="pendientes">Sin enviar</button>
+    </div>
+    <div id="lista"></div>
+
+    <div class="acciones-viaje" style="flex-direction:column">
+      <button id="btnImprimirVales">🖨️ Imprimir vales (hoja carta)</button>
+      <button class="wa" id="btnAvisar">✓ Terminar y avisar por WhatsApp</button>
+      <a id="linkWA" class="wa" href="#" target="_blank" rel="noopener">📲 Abrir WhatsApp para enviar el aviso</a>
+    </div>
+
+  </main>
+
+  <div class="sync-bar" id="syncBar">
+    <div class="resumen"><div class="l1" id="syncL1">Todo guardado</div><div class="l2" id="syncL2">Nada pendiente</div></div>
+    <button class="primario" id="btnSync">Enviar a la nube</button>
+  </div>
+</div>
+
+<div class="msg" id="msg"></div>
+<div id="printArea"></div>
+
+<script>
+/* ══════════════ CONFIGURACIÓN ══════════════ */
+const APPS_URL  = 'https://script.google.com/macros/s/AKfycbzpiGad-0hH-iDMSqo6RV5TP0K-ax33vNAa5fY2br6ueQ_CPCCnNAy2R5iHJA4-U319oQ/exec';
+const FOLDER_ID = '16yJ82MVsmRDup0gA1GicFE2Ami726FUl';
+const SHEET_ID  = '1otbCy7zMB4ibnQSL0BXo-VBK7rKGqntuo8HteibQ2LI';
+const MENU_URL  = 'index.html';
+const WHATSAPP_ADMIN = '';   /* Tu número con lada, ej. '5215512345678'. Vacío = WhatsApp deja elegir contacto. */
+
+const $ = id => document.getElementById(id);
+
+/* ══════════════ BASE DE DATOS LOCAL ══════════════ */
+const DB_NOMBRE='md_comprobacion', DB_VER=4;
+let db=null;
+function abrirDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NOMBRE,DB_VER);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('viajes')) d.createObjectStore('viajes',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('docs')){
+        const s=d.createObjectStore('docs',{keyPath:'id'});
+        s.createIndex('viajeId','viajeId',{unique:false});
+      }
+    };
+    req.onsuccess=e=>{db=e.target.result;res(db);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+function tx(s,m){return db.transaction(s,m).objectStore(s);}
+function guardar(s,o){return new Promise((res,rej)=>{const r=tx(s,'readwrite').put(o);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+function leerTodo(s){return new Promise((res,rej)=>{const r=tx(s,'readonly').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);});}
+function leerUno(s,id){return new Promise((res,rej)=>{const r=tx(s,'readonly').get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error);});}
+function borrarD(s,id){return new Promise((res,rej)=>{const r=tx(s,'readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+
+/* ══════════════ ESTADO ══════════════ */
+let viajeActivo=null, editandoViaje=false, modoVale=false;
+let archivosPendientes=[], facturaLeida=null, filtroActual='todos';
+
+/* ══════════════ UTILIDADES ══════════════ */
+function msg(t,tipo){const m=$('msg');m.textContent=t;m.className='msg ver '+(tipo||'');clearTimeout(m._t);m._t=setTimeout(()=>{m.className='msg';},3400);}
+function hoyISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtFecha(iso){if(!iso)return '';const p=String(iso).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso;}
+function periodoTxt(v){if(!v.inicio&&!v.fin)return 'Sin fechas';return fmtFecha(v.inicio)+(v.fin?' – '+fmtFecha(v.fin):'');}
+function mx(v){return '$'+(Number(v)||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function archivoADataUrl(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
+function archivoATexto(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});}
+function comprimeImagen(dataUrl,maxLado){
+  return new Promise(res=>{const img=new Image();
+    img.onload=()=>{let w=img.width,h=img.height;if(Math.max(w,h)>maxLado){if(w>h){h=Math.round(h*maxLado/w);w=maxLado;}else{w=Math.round(w*maxLado/h);h=maxLado;}}
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);res(c.toDataURL('image/jpeg',0.82));};
+    img.onerror=()=>res(dataUrl);img.src=dataUrl;});
+}
+function escaparHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ══════════════ LECTOR CFDI (silencioso, si suben XML) ══════════════ */
+function leerCFDIxml(texto){
+  try{
+    const doc=new DOMParser().parseFromString(texto,'application/xml');
+    if(doc.querySelector('parsererror')) return null;
+    const comp=doc.getElementsByTagName('cfdi:Comprobante')[0]||doc.documentElement;
+    if(!comp) return null;
+    const at=(el,n)=>el&&el.getAttribute?(el.getAttribute(n)||''):'';
+    const emisor=doc.getElementsByTagName('cfdi:Emisor')[0];
+    const tfd=doc.getElementsByTagName('tfd:TimbreFiscalDigital')[0];
+    let iva=0, ieps=0;
+    const impBloques=doc.getElementsByTagName('cfdi:Impuestos');
+    const totTrasl=impBloques.length?parseFloat(at(impBloques[impBloques.length-1],'TotalImpuestosTrasladados')||'0'):0;
+    const ult=impBloques.length?impBloques[impBloques.length-1]:null;
+    const lista= ult?ult.getElementsByTagName('cfdi:Traslado'):doc.getElementsByTagName('cfdi:Traslado');
+    for(let i=0;i<lista.length;i++){const imp=at(lista[i],'Impuesto');const importe=parseFloat(at(lista[i],'Importe')||'0');if(imp==='002')iva+=importe;if(imp==='003')ieps+=importe;}
+    if(!iva&&totTrasl)iva=totTrasl;
+    const r={uuid:tfd?at(tfd,'UUID'):'',fecha:(at(comp,'Fecha')||'').slice(0,10),
+      rfcEmisor:emisor?at(emisor,'Rfc'):'',nombreEmisor:emisor?at(emisor,'Nombre'):'',
+      subtotal:parseFloat(at(comp,'SubTotal')||'0'),iva:iva,ieps:ieps,total:parseFloat(at(comp,'Total')||'0')};
+    return (r.uuid||r.total)?r:null;
+  }catch(e){return null;}
+}
+
+/* ══════════════ NAVEGACIÓN ══════════════ */
+function mostrar(sc){['scHome','scNuevo','scViaje'].forEach(id=>$(id).classList.toggle('oculto',id!==sc));window.scrollTo(0,0);}
+
+/* ══════════════ HOME ══════════════ */
+async function irHome(){ mostrar('scHome'); await pintarViajes(); }
+async function pintarViajes(){
+  const viajes=(await leerTodo('viajes')).sort((a,b)=>b.creado-a.creado);
+  const docs=await leerTodo('docs');
+  const cont=$('listaViajes'); cont.innerHTML='';
+  if(!viajes.length){
+    cont.innerHTML='<div class="vacio"><span class="ico">🧳</span>Aún no tienes viajes.<br>Crea uno con el botón de arriba y empieza a subir tus comprobantes.</div>';
+    return;
+  }
+  viajes.forEach(v=>{
+    const dv=docs.filter(d=>d.viajeId===v.id);
+    const pend=dv.filter(d=>d.estado==='pendiente').length;
+    const card=document.createElement('div');card.className='viaje-card';
+    let badge = v.estado==='terminado'
+      ? '<span class="vc-badge terminado">TERMINADO</span>'
+      : (pend>0?'<span class="vc-badge pend">'+pend+' SIN ENVIAR</span>':'<span class="vc-badge abierto">ABIERTO</span>');
+    card.innerHTML=
+      '<div class="vc-ico">🧳</div>'+
+      '<div class="vc-info">'+
+        '<div class="vc-nombre">'+escaparHtml(v.nombre)+'</div>'+
+        '<div class="vc-lugar">'+escaparHtml(v.lugar||'Sin lugar')+'</div>'+
+        '<div class="vc-periodo">'+periodoTxt(v)+'</div>'+
+      '</div>'+
+      '<div class="vc-lado">'+badge+'<span class="vc-cuenta">'+dv.length+(dv.length===1?' comp.':' comps.')+'</span></div>';
+    card.onclick=()=>abrirViaje(v.id);
+    cont.appendChild(card);
+  });
+}
+$('btnHomeMenu').addEventListener('click',()=>{window.location.href=MENU_URL;});
+$('btnNuevoViaje').addEventListener('click',()=>abrirNuevoViaje());
+
+/* ══════════════ NUEVO / EDITAR VIAJE ══════════════ */
+function abrirNuevoViaje(){
+  editandoViaje=false;$('nuevoTitulo').textContent='Nuevo viaje';
+  ['vNombre','vLugar','vInicio','vFin'].forEach(id=>$(id).value='');
+  mostrar('scNuevo');
+}
+function abrirEditarViaje(){
+  editandoViaje=true;$('nuevoTitulo').textContent='Editar viaje';
+  $('vNombre').value=viajeActivo.nombre||'';$('vLugar').value=viajeActivo.lugar||'';
+  $('vInicio').value=viajeActivo.inicio||'';$('vFin').value=viajeActivo.fin||'';
+  mostrar('scNuevo');
+}
+$('btnNuevoVolver').addEventListener('click',()=>{ editandoViaje?abrirViaje(viajeActivo.id):irHome(); });
+$('btnGuardarViaje').addEventListener('click',async()=>{
+  const nombre=$('vNombre').value.trim(), lugar=$('vLugar').value.trim();
+  if(!nombre){msg('Escribe el responsable de viáticos.','err');$('vNombre').focus();return;}
+  if(!lugar){msg('Escribe el lugar de comisión.','err');$('vLugar').focus();return;}
+  if(editandoViaje){
+    Object.assign(viajeActivo,{nombre,lugar,inicio:$('vInicio').value,fin:$('vFin').value});
+    await guardar('viajes',viajeActivo);msg('Datos actualizados.','ok');abrirViaje(viajeActivo.id);
+  }else{
+    const v={id:uid(),nombre,lugar,inicio:$('vInicio').value,fin:$('vFin').value,estado:'abierto',creado:Date.now()};
+    await guardar('viajes',v);abrirViaje(v.id);
+  }
+});
+
+/* ══════════════ ABRIR VIAJE ══════════════ */
+async function abrirViaje(id){
+  viajeActivo=await leerUno('viajes',id);
+  if(!viajeActivo){irHome();return;}
+  limpiarCaptura();salirModoVale();
+  $('linkWA').style.display='none';
+  filtroActual='todos';
+  document.querySelectorAll('.filtro').forEach(x=>x.classList.toggle('activo',x.dataset.f==='todos'));
+  pintarCabeceraViaje();mostrar('scViaje');await refrescarLista();
+}
+function pintarCabeceraViaje(){
+  const v=viajeActivo;
+  $('barraTitulo').textContent=v.nombre;
+  $('barraFolio').textContent=v.lugar||'Sin lugar';
+  $('rNombre').textContent=v.nombre;
+  $('rLugar').textContent=v.lugar||'Sin lugar de comisión';
+  $('rMeta').textContent=periodoTxt(v);
+}
+$('btnViajeVolver').addEventListener('click',irHome);
+$('btnEditarViaje').addEventListener('click',abrirEditarViaje);
+
+/* ══════════════ CAPTURA DE ARCHIVOS ══════════════ */
+async function recibirArchivos(fileList){
+  for(const f of Array.from(fileList)){
+    const esXml=/\.xml$/i.test(f.name)||f.type==='text/xml'||f.type==='application/xml';
+    const esPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+    if(esXml){
+      const txt=await archivoATexto(f);const d=leerCFDIxml(txt);if(d)facturaLeida=d;
+      const dataUrl=await archivoADataUrl(f);
+      archivosPendientes.push({nombre:f.name,tipoMime:'application/xml',dataUrl,esPdf:false,clase:'xml'});
+    }else if(esPdf){
+      const dataUrl=await archivoADataUrl(f);
+      archivosPendientes.push({nombre:f.name,tipoMime:'application/pdf',dataUrl,esPdf:true,clase:'pdf'});
+    }else{
+      let dataUrl=await archivoADataUrl(f);dataUrl=await comprimeImagen(dataUrl,1600);
+      archivosPendientes.push({nombre:f.name||'foto.jpg',tipoMime:'image/jpeg',dataUrl,esPdf:false,clase:'foto'});
+    }
+  }
+  pintarPrevia();
+}
+$('inCamara').addEventListener('change',e=>{recibirArchivos(e.target.files);e.target.value='';});
+$('inArchivo').addEventListener('change',e=>{recibirArchivos(e.target.files);e.target.value='';});
+
+function pintarPrevia(){
+  const grid=$('previaGrid');grid.innerHTML='';
+  archivosPendientes.forEach((a,i)=>{
+    const item=document.createElement('div');item.className='previa-item';
+    if(a.clase==='xml')item.innerHTML='<div class="doc xml">XML</div>';
+    else if(a.esPdf)item.innerHTML='<div class="doc">PDF</div>';
+    else item.innerHTML='<img src="'+a.dataUrl+'" alt="">';
+    const q=document.createElement('button');q.className='quita';q.textContent='×';
+    q.onclick=()=>{archivosPendientes.splice(i,1);pintarPrevia();};
+    item.appendChild(q);grid.appendChild(item);
+  });
+  $('previa').classList.toggle('activa',archivosPendientes.length>0);
+}
+
+$('btnGuardarDoc').addEventListener('click',async()=>{
+  if(!archivosPendientes.length){msg('Agrega al menos una foto o documento.','err');return;}
+  await guardarDoc({
+    origen:'archivo',
+    concepto:$('cNota').value.trim()||'Comprobante',
+    telefono:$('cTelefono').value.trim(),
+    fecha:(facturaLeida&&facturaLeida.fecha)||(viajeActivo.inicio||hoyISO()),
+    archivos:archivosPendientes.slice(),
+    factura:facturaLeida
+  });
+  limpiarCaptura();msg('Comprobante guardado.','ok');
+});
+async function guardarDoc(base){
+  const doc=Object.assign({id:uid(),viajeId:viajeActivo.id,estado:'pendiente',creado:Date.now()},base);
+  await guardar('docs',doc);await refrescarLista();
+}
+function limpiarCaptura(){
+  archivosPendientes=[];facturaLeida=null;
+  ['cTelefono','cNota'].forEach(id=>{if($(id))$(id).value='';});
+  pintarPrevia();
+}
+
+/* ══════════════ VALE ══════════════ */
+$('btnModoVale').addEventListener('click',entrarModoVale);
+$('btnCancelarVale').addEventListener('click',salirModoVale);
+function entrarModoVale(){modoVale=true;$('zonaCaptura').classList.add('oculto');$('valeForm').classList.add('activa');$('valeFecha').value=viajeActivo&&viajeActivo.inicio?viajeActivo.inicio:hoyISO();}
+function salirModoVale(){modoVale=false;$('zonaCaptura').classList.remove('oculto');$('valeForm').classList.remove('activa');['valeConcepto','valeMonto','valeMotivo'].forEach(id=>{if($(id))$(id).value='';});}
+$('btnGuardarVale').addEventListener('click',async()=>{
+  const concepto=$('valeConcepto').value.trim(), monto=parseFloat($('valeMonto').value)||0;
+  if(!concepto){msg('Escribe el concepto de la compra.','err');return;}
+  if(!monto){msg('Escribe el monto.','err');return;}
+  const fecha=$('valeFecha').value||hoyISO(), motivo=$('valeMotivo').value.trim();
+  const valeImg=dibujarVale({concepto,monto,fecha,motivo,nombre:viajeActivo.nombre,lugar:viajeActivo.lugar});
+  await guardarDoc({origen:'vale',concepto,monto,fecha,motivo,telefono:'',archivos:[{nombre:'vale_azul.png',tipoMime:'image/png',dataUrl:valeImg,esPdf:false,clase:'vale'}],factura:null});
+  salirModoVale();msg('Vale generado.','ok');
+});
+function dibujarVale(v){
+  const W=900,H=560,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);
+  g.strokeStyle='#1A1080';g.lineWidth=8;g.strokeRect(14,14,W-28,H-28);
+  g.fillStyle='#1A1080';g.fillRect(14,14,W-28,86);
+  g.fillStyle='#fff';g.font='800 34px Inter,Arial';g.textBaseline='middle';g.fillText('VALE  ·  M Dreieck',40,58);
+  g.fillStyle='#FFE600';g.font='700 16px Inter,Arial';g.fillText('COMPRA SIN TICKET NI FACTURA',40,84);
+  g.textBaseline='alphabetic';
+  const linea=(et,val,y)=>{g.fillStyle='#5D6480';g.font='600 15px Inter,Arial';g.fillText(et.toUpperCase(),44,y);g.fillStyle='#151626';g.font='700 24px Inter,Arial';g.fillText(val||'—',44,y+30);};
+  linea('Concepto',v.concepto,150);linea('Fecha',fmtFecha(v.fecha),230);
+  g.fillStyle='#EEF0FB';g.fillRect(560,130,300,120);g.strokeStyle='#1A1080';g.lineWidth=2;g.strokeRect(560,130,300,120);
+  g.fillStyle='#5D6480';g.font='600 14px Inter,Arial';g.fillText('MONTO',580,160);
+  g.fillStyle='#1A1080';g.font='800 40px Inter,Arial';g.fillText(mx(v.monto),580,210);
+  if(v.motivo){g.fillStyle='#5D6480';g.font='600 15px Inter,Arial';g.fillText('MOTIVO',44,320);g.fillStyle='#151626';g.font='400 18px Inter,Arial';wrap(g,v.motivo,44,350,800,26);}
+  g.fillStyle='#5D6480';g.font='600 14px Inter,Arial';
+  g.fillText('Trabajador: '+(v.nombre||'—'),44,H-92);
+  if(v.lugar)g.fillText('Lugar: '+v.lugar,44,H-70);
+  g.fillStyle='#1A1080';g.fillRect(560,H-96,300,2);
+  g.fillStyle='#5D6480';g.font='600 13px Inter,Arial';g.fillText('Firma de quien autoriza',605,H-70);
+  return c.toDataURL('image/png');
+}
+function wrap(g,t,x,y,maxW,lh){const pal=t.split(' ');let l='',yy=y;for(const p of pal){const pr=l+p+' ';if(g.measureText(pr).width>maxW&&l){g.fillText(l,x,yy);l=p+' ';yy+=lh;}else l=pr;}g.fillText(l,x,yy);}
+
+/* ══════════════ LISTA ══════════════ */
+$('filtros').addEventListener('click',e=>{
+  const b=e.target.closest('.filtro');if(!b)return;
+  filtroActual=b.dataset.f;
+  document.querySelectorAll('.filtro').forEach(x=>x.classList.toggle('activo',x===b));
+  refrescarLista();
+});
+async function docsDelViaje(){ return (await leerTodo('docs')).filter(d=>d.viajeId===viajeActivo.id).sort((a,b)=>b.creado-a.creado); }
+async function refrescarLista(){
+  const docs=await docsDelViaje();
+  let nArch=0,nVale=0,nPend=0;
+  docs.forEach(d=>{if(d.origen==='vale')nVale++;else nArch++;if(d.estado==='pendiente')nPend++;});
+  $('rTotalDocs').textContent=docs.length;$('rArch').textContent=nArch;$('rVales').textContent=nVale;$('rPend').textContent=nPend;
+
+  const filtrados=docs.filter(d=>filtroActual==='pendientes'?d.estado==='pendiente':true);
+  $('cuentaLista').textContent=filtrados.length+(filtrados.length===1?' comprobante':' comprobantes');
+  const lista=$('lista');lista.innerHTML='';
+  if(!filtrados.length){
+    lista.innerHTML='<div class="vacio"><span class="ico">🧾</span>'+(docs.length?'Nada en este filtro.':'Aún no capturas comprobantes en este viaje.')+'</div>';
+  }else filtrados.forEach(d=>lista.appendChild(filaDoc(d)));
+  actualizarSyncBar(docs.length,nPend);
+}
+function filaDoc(d){
+  const el=document.createElement('div');
+  el.className='doc '+(d.origen==='vale'?'vale':'archivo');
+  const a0=d.archivos&&d.archivos[0];
+  let mini;
+  if(d.origen==='vale')mini='<div class="mini-vale">🎫</div>';
+  else if(a0&&a0.clase==='xml')mini='<div class="mini-doc" style="background:#E7F5EE;color:#0F7B4F">XML</div>';
+  else if(a0&&a0.esPdf)mini='<div class="mini-doc">PDF</div>';
+  else if(a0)mini='<img class="mini" src="'+a0.dataUrl+'" alt="">';
+  else mini='<div class="mini-doc">?</div>';
+  const nArch=d.archivos&&d.archivos.length>1?' · '+d.archivos.length+' arch.':'';
+  const estadoIco=d.estado==='enviado'?'☁️':'⏳';
+  const tel=d.telefono?'<div class="tel">📞 '+escaparHtml(d.telefono)+'</div>':'';
+  const montoTxt=d.origen==='vale'?mx(d.monto)+' · ':'';
+  el.innerHTML=mini+
+    '<div class="info"><div class="concepto">'+escaparHtml(d.concepto)+(d.origen==='vale'?' (vale)':'')+'</div>'+
+    '<div class="detalle">'+montoTxt+fmtFecha(d.fecha)+nArch+'</div>'+tel+'</div>'+
+    '<div class="lado"><span class="estado" title="'+(d.estado==='enviado'?'Enviado':'Sin enviar')+'">'+estadoIco+'</span><div class="acciones-doc"></div></div>';
+  const acc=el.querySelector('.acciones-doc');
+  const br=document.createElement('button');br.className='mini-btn';br.textContent='↻';br.title='Reenviar a la nube';
+  br.onclick=()=>reenviarUno(d.id);
+  acc.appendChild(br);
+  const bb=document.createElement('button');bb.className='mini-btn';bb.textContent='🗑';bb.title='Borrar';
+  bb.onclick=async()=>{if(confirm('¿Borrar este comprobante?')){await borrarD('docs',d.id);await refrescarLista();msg('Borrado.');}};
+  acc.appendChild(bb);
+  return el;
+}
+
+async function reenviarUno(id){
+  if(!navigator.onLine){msg('No hay conexión. Conéctate e intenta de nuevo.','err');return;}
+  const d=await leerUno('docs',id);
+  if(!d)return;
+  d.estado='pendiente';await guardar('docs',d);   // lo marca pendiente para forzar el reenvío
+  await refrescarLista();
+  await sincronizar(false);
+}
+
+/* ══════════════ CONEXIÓN Y SYNC ══════════════ */
+function actualizarConexion(){
+  const on=navigator.onLine;
+  [['nubeHome','txtHome'],['nubeViaje','txtViaje']].forEach(([b,t])=>{$(b).className='estado-nube '+(on?'on':'off');$(t).textContent=on?'En línea':'Sin conexión';});
+}
+window.addEventListener('online',()=>{actualizarConexion();msg('Conexión recuperada.','ok');});
+window.addEventListener('offline',actualizarConexion);
+function actualizarSyncBar(total,pend){
+  if(pend>0){$('syncL1').textContent=pend+(pend===1?' comprobante pendiente':' comprobantes pendientes');$('syncL2').textContent='Toca enviar cuando tengas señal.';$('btnSync').disabled=false;$('btnSync').textContent='Enviar a la nube';}
+  else if(total>0){$('syncL1').textContent='Todo enviado a la nube';$('syncL2').textContent='No hay nada pendiente.';$('btnSync').disabled=true;$('btnSync').textContent='Enviado';}
+  else{$('syncL1').textContent='Sin comprobantes aún';$('syncL2').textContent='Agrega el primero arriba.';$('btnSync').disabled=true;$('btnSync').textContent='Enviar a la nube';}
+}
+$('btnSync').addEventListener('click',()=>sincronizar(false));
+async function sincronizar(silencioso){
+  if(!navigator.onLine){if(!silencioso)msg('No hay conexión.','err');return 0;}
+  const docs=(await docsDelViaje()).filter(d=>d.estado==='pendiente');
+  if(!docs.length){if(!silencioso)msg('No hay nada pendiente.','ok');return 0;}
+  const btn=$('btnSync');btn.disabled=true;
+  let ok=0,fail=0,ultimoError='';const v=viajeActivo;
+  for(let i=0;i<docs.length;i++){
+    const d=docs[i];btn.textContent='Enviando '+(i+1)+' de '+docs.length+'…';
+    try{
+      const payload={accion:'comprobante',folderId:FOLDER_ID,sheetId:SHEET_ID,
+        viaje:{nombre:v.nombre,lugar:v.lugar,inicio:v.inicio,fin:v.fin},
+        doc:{id:d.id,origen:d.origen,concepto:d.concepto,monto:d.monto||0,fecha:d.fecha,
+          motivo:d.motivo||'',telefono:d.telefono||'',factura:d.factura||null,
+          archivos:(d.archivos||[]).map(a=>({nombre:a.nombre,tipoMime:a.tipoMime,clase:a.clase||'',data:a.dataUrl.split(',')[1]}))}};
+      const resp=await fetch(APPS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow'});
+      let r=null; try{ r=JSON.parse(await resp.text()); }catch(_){ r=null; }
+      if(r && r.ok){
+        d.estado='enviado';d.enviadoEn=Date.now();await guardar('docs',d);ok++;
+      }else{
+        fail++; ultimoError=(r&&(r.error||r.drive||r.sheet))||'No se pudo confirmar el envío (revisa el Apps Script).';
+        console.warn('No confirmado',d.id,r);
+      }
+    }catch(err){fail++;ultimoError=String((err&&err.message)||err);console.error('Falló',d.id,err);}
+  }
+  await refrescarLista();
+  if(!silencioso){
+    if(fail===0) msg(ok+' comprobante(s) enviado(s) y confirmado(s).','ok');
+    else {
+      msg(ok+' enviado(s), '+fail+' sin confirmar.','err');
+      alert('No se pudo confirmar el envío de '+fail+' comprobante(s) a la nube.\n\nDetalle del servidor:\n'+(ultimoError||'sin detalle')+'\n\nLo capturado sigue guardado en el teléfono. Toma captura de este mensaje y compártela para revisar.');
+    }
+  }
+  return fail;
+}
+
+/* ══════════════ TERMINAR Y AVISAR ══════════════ */
+$('btnAvisar').addEventListener('click',async()=>{
+  const docs=await docsDelViaje();
+  if(!docs.length){msg('Este viaje no tiene comprobantes.','err');return;}
+  const pend=docs.filter(d=>d.estado==='pendiente').length;
+  if(pend>0){
+    if(!confirm('Tienes '+pend+' comprobante(s) sin enviar. Se enviarán a la nube antes de avisar. ¿Continuar?')) return;
+    if(!navigator.onLine){msg('Necesitas conexión para enviar antes de avisar.','err');return;}
+    const fail=await sincronizar(true);
+    if(fail>0){msg('Algunos no se enviaron. Revisa e intenta de nuevo.','err');return;}
+  }
+  viajeActivo.estado='terminado';await guardar('viajes',viajeActivo);
+  const v=viajeActivo;
+  const nArch=docs.filter(d=>d.origen!=='vale').length, nVale=docs.filter(d=>d.origen==='vale').length;
+  let t='Hola, terminé mi comprobación de viáticos.\n';
+  t+='Trabajador: '+v.nombre+'\n';
+  t+='Lugar: '+(v.lugar||'—')+'\n';
+  t+='Periodo: '+periodoTxt(v)+'\n';
+  t+='Comprobantes: '+docs.length+' ('+nArch+' fotos/documentos, '+nVale+' vales)\n';
+  t+='Ya lo subí a la nube.';
+  const num=(WHATSAPP_ADMIN||'').replace(/\D/g,'');
+  const link=$('linkWA');
+  link.href='https://wa.me/'+num+'?text='+encodeURIComponent(t);
+  link.style.display='block';
+  msg('Listo. Ahora toca "Abrir WhatsApp" para enviar el aviso.','ok');
+});
+
+/* ══════════════ IMPRIMIR VALES (hoja carta, 4 por hoja) ══════════════ */
+$('btnImprimirVales').addEventListener('click',imprimirVales);
+async function imprimirVales(){
+  const vales=(await docsDelViaje()).filter(d=>d.origen==='vale');
+  if(!vales.length){msg('Este viaje no tiene vales para imprimir.','err');return;}
+  const v=viajeActivo;
+  const header=escaparHtml('Vales — '+v.nombre+(v.lugar?(' · '+v.lugar):'')+' · '+periodoTxt(v));
+  let html='';
+  for(let i=0;i<vales.length;i+=4){
+    html+='<div class="print-pagina"><div class="print-header">'+header+'</div><div class="print-grid">';
+    vales.slice(i,i+4).forEach(d=>{
+      const img=d.archivos&&d.archivos[0]?d.archivos[0].dataUrl:'';
+      html+='<div class="print-vale"><img src="'+img+'" alt=""></div>';
+    });
+    html+='</div></div>';
+  }
+  $('printArea').innerHTML=html;
+  setTimeout(()=>window.print(),200);
+}
+
+
+(async function init(){
+  actualizarConexion();
+  try{await abrirDB();}catch(err){msg('Este navegador no permite guardar sin conexión. Usa Chrome o Safari.','err');console.error(err);return;}
+  await irHome();
+})();
+
+/* ══════════════ INSTALAR APP (PWA) + OFFLINE ══════════════ */
+let deferredPrompt=null;
+const enStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;const b=$('btnInstalar');if(b&&!enStandalone)b.style.display='block';});
+window.addEventListener('appinstalled',function(){const b=$('btnInstalar');if(b)b.style.display='none';deferredPrompt=null;msg('App instalada. Ya la puedes abrir desde el teléfono.','ok');});
+(function(){
+  const b=$('btnInstalar'); if(!b) return;
+  const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(esIOS && !enStandalone) b.style.display='block';
+  b.addEventListener('click',async function(){
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      try{ await deferredPrompt.userChoice; }catch(_){}
+      deferredPrompt=null; b.style.display='none';
+    }else{
+      alert('Para instalar la app en el teléfono:\n\niPhone (Safari): toca el botón Compartir (el cuadro con la flecha hacia arriba) y elige "Agregar a inicio".\n\nAndroid (Chrome): abre el menú de los tres puntos (⋮) y elige "Instalar aplicación" o "Agregar a pantalla principal".');
+    }
+  });
+})();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW no registrado',e);});
+  });
+}
+</script>
+</body>
+</html>
