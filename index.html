@@ -127,6 +127,72 @@
   }
   @media (prefers-reduced-motion:no-preference){button{transition:filter .15s ease}}
 
+  /* ── Calculadora de viáticos (modal) ── */
+  #calcOverlay{
+    position:fixed; inset:0; background:rgba(10,11,25,.55); z-index:60;
+    display:none; align-items:flex-start; justify-content:center; padding:20px 12px; overflow-y:auto;
+  }
+  #calcOverlay.abierto{display:flex}
+  #calcModal{
+    background:#F5F6FA; border-radius:12px; width:100%; max-width:640px; margin:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.4); overflow:hidden;
+  }
+  #calcModal .cabecera{
+    background:var(--azul); color:#fff; padding:14px 18px;
+    display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:2;
+  }
+  #calcModal .cabecera h2{font-size:16px; font-weight:700; margin:0; flex:1}
+  #calcModal .cabecera .cerrar{
+    background:rgba(255,255,255,.16); border:0; color:#fff; font-size:20px; line-height:1;
+    width:30px; height:30px; border-radius:6px; cursor:pointer; flex:none;
+  }
+  #calcModal .cuerpo{padding:16px 18px; max-height:calc(100vh - 200px); overflow-y:auto}
+  .calc-sec{background:#fff; border:1px solid var(--linea); border-radius:8px; padding:14px; margin-bottom:12px}
+  .calc-sec h3{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--azul); margin:0 0 12px}
+  .calc-sec label{display:block; font-size:12px; font-weight:600; color:var(--tenue); margin:10px 0 4px}
+  .calc-sec label:first-of-type{margin-top:0}
+  .calc-sec input, .calc-sec select{
+    width:100%; font-size:14px; padding:9px 10px; border:1px solid var(--linea); border-radius:6px; background:#fff; color:var(--texto);
+  }
+  .calc-sec input:focus{outline:2px solid var(--azul); outline-offset:1px}
+  .calc-r2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .calc-r3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
+  .calc-nota{font-size:11px; color:var(--tenue); background:#F7F8FE; border-left:3px solid var(--azul); border-radius:4px; padding:7px 10px; margin:8px 0 0; line-height:1.4}
+  .calc-nota.warn{border-left-color:#D6A400; background:#FFFBEF}
+  .calc-btn{width:100%; margin-top:10px; padding:11px; background:var(--azul); color:#fff; border:0; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer}
+  .calc-btn.sec{background:#fff; color:var(--azul); border:1px solid var(--azul)}
+  .calc-btn.ghost{background:transparent; color:var(--azul); border:1px dashed var(--azul)}
+  .calc-res{background:#fff; border:1px solid var(--linea); border-radius:8px; padding:12px 14px; margin-top:10px; display:none}
+  .calc-res.show{display:block}
+  .calc-res .fila{display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--linea); font-size:12px}
+  .calc-res .fila:last-child{border-bottom:0}
+  .calc-res .fila b{color:var(--azul); font-variant-numeric:tabular-nums}
+  .calc-desg .fila{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--linea)}
+  .calc-desg .fila:last-child{border-bottom:0}
+  .calc-desg .et{font-size:13px; font-weight:600}
+  .calc-desg .de{font-size:11px; color:var(--tenue); margin-top:2px}
+  .calc-desg .mo{font-size:14px; font-weight:700; color:var(--azul); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+  .calc-total{background:var(--azul); color:#fff; border-radius:10px; padding:16px; text-align:center; margin-bottom:12px}
+  .calc-total .lbl{font-size:11px; opacity:.75; text-transform:uppercase; letter-spacing:.08em}
+  .calc-total .mon{font-size:30px; font-weight:800; margin:4px 0; font-variant-numeric:tabular-nums}
+  .calc-total .sub{font-size:12px; opacity:.75}
+  .calc-fila-dia{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--linea); flex-wrap:wrap}
+  .calc-fila-dia .dl{font-size:12px; font-weight:700; color:var(--azul); min-width:44px}
+  .calc-fila-dia label{display:flex; align-items:center; gap:5px; font-size:12px; font-weight:500; color:var(--texto); margin:0; cursor:pointer}
+  .calc-fila-dia input[type=checkbox]{width:15px; height:15px; accent-color:var(--azul)}
+  .calc-trans, .calc-noche{background:#F7F8FE; border:1px solid var(--linea); border-radius:6px; padding:10px; margin-top:8px}
+  .calc-trans .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px}
+  .calc-trans .top b{font-size:12px; color:var(--azul)}
+  .calc-trans .x{background:none; border:0; color:#B3261E; font-size:16px; cursor:pointer}
+  .calc-pie{position:sticky; bottom:0; background:#F5F6FA; border-top:1px solid var(--linea); padding:12px 18px; display:flex; gap:10px}
+  .calc-pie button{flex:1; padding:12px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; border:1px solid var(--azul)}
+  .calc-pie .cancelar{background:#fff; color:var(--tenue); border-color:var(--linea)}
+  .calc-pie .aplicar{background:var(--azul); color:#fff}
+  @media (max-width:560px){
+    .calc-r3{grid-template-columns:1fr}
+    .calc-fila-dia label{font-size:11px}
+  }
+
   /* ── Menú de inicio ── */
   #pantallaInicio{
     position:fixed; inset:0; background:var(--azul); z-index:50;
@@ -407,8 +473,124 @@
   </div>
 </main>
 
+<div id="calcOverlay">
+  <div id="calcModal">
+    <div class="cabecera">
+      <h2>Calcular viáticos</h2>
+      <button type="button" class="cerrar" id="calcCerrar" aria-label="Cerrar">×</button>
+    </div>
+    <div class="cuerpo">
+
+      <p class="calc-nota">Usa los datos del trabajador y las fechas que ya capturaste en la solicitud. Calcula el estimado y al aplicarlo se coloca en el campo de importe del formato. Costos podrá ajustarlo.</p>
+
+      <!-- Ruta -->
+      <div class="calc-sec">
+        <h3>🗺️ Ruta y gasolina</h3>
+        <label>Ciudad / dirección de origen</label>
+        <input type="text" id="cOrigen" placeholder="Ej: Ciudad de México, CDMX">
+        <label>Ciudad / dirección de destino</label>
+        <input type="text" id="cDestino" placeholder="Ej: Puebla, Puebla">
+        <div class="calc-r2" style="margin-top:10px">
+          <div><label>Rendimiento (km/L)</label><input type="number" id="cRendimiento" value="12" min="1" max="50" step="0.5"></div>
+          <div><label>Precio gasolina ($/L)</label><input type="number" id="cPrecioGas" value="24.50" min="1" step="0.01"></div>
+        </div>
+        <p class="calc-nota warn">La gasolina debe pagarse con tarjeta. No se reconocen pagos en efectivo.</p>
+        <button type="button" class="calc-btn" id="cBtnRuta">📍 Calcular ruta automáticamente</button>
+        <button type="button" class="calc-btn sec" id="cBtnManual" style="margin-top:8px">✏️ Escribir km a mano (sin internet)</button>
+        <div id="cKmManual" style="display:none;margin-top:8px">
+          <label>Kilómetros solo ida</label>
+          <input type="number" id="cKmIda" value="0" min="0" step="1">
+        </div>
+        <div class="calc-res" id="cRutaRes">
+          <div class="fila"><span>📏 Distancia (ida)</span><b id="cResKm">—</b></div>
+          <div class="fila"><span>⛽ Litros (ida y vuelta)</span><b id="cResLitros">—</b></div>
+          <div class="fila"><span>💰 Costo gasolina (ida y vuelta)</span><b id="cResGas">—</b></div>
+        </div>
+        <div id="cLinksRuta" style="display:none">
+          <a class="calc-btn sec" id="cBtnMaps" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:8px">🗺️ Ver en Google Maps · casetas</a>
+          <a class="calc-btn sec" id="cBtnWaze" href="#" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:8px">🚗 Ver en Waze · costo casetas</a>
+        </div>
+      </div>
+
+      <!-- Casetas -->
+      <div class="calc-sec">
+        <h3>🛣️ Casetas</h3>
+        <div class="calc-r2">
+          <div><label>No. de casetas (ida)</label><input type="number" id="cNumCasetas" value="0" min="0"></div>
+          <div><label>Precio por caseta ($)</label><input type="number" id="cPrecioCaseta" value="0" min="0" step="10"></div>
+        </div>
+        <p class="calc-nota">El total se multiplica × 2 (ida y vuelta) automáticamente.</p>
+      </div>
+
+      <!-- Alimentación -->
+      <div class="calc-sec">
+        <h3>🍽️ Alimentación por día</h3>
+        <p class="calc-nota">Monto estándar $250/persona. Marca las comidas que aplican cada día.</p>
+        <div class="calc-r3" style="margin-top:10px">
+          <div><label>Desayuno ($)</label><input type="number" id="cDesayuno" value="250" min="0"></div>
+          <div><label>Comida ($)</label><input type="number" id="cComida" value="250" min="0"></div>
+          <div><label>Cena ($)</label><input type="number" id="cCena" value="250" min="0"></div>
+        </div>
+        <div id="cDiasCont" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Hospedaje -->
+      <div class="calc-sec">
+        <h3>🏨 Hospedaje (Airbnb)</h3>
+        <div class="calc-r2">
+          <div><label>Costo por noche ($)</label><input type="number" id="cCostoNoche" value="0" min="0" step="100" placeholder="Ej: 1200"></div>
+          <div><label>Noches marcadas</label><input type="number" id="cNochesTotal" value="0" readonly style="background:var(--gris)"></div>
+        </div>
+        <div id="cNochesCont" style="margin-top:8px"></div>
+        <a class="calc-btn sec" id="cBtnAirbnb" href="https://www.airbnb.mx" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:8px">🏠 Buscar Airbnb en el destino</a>
+      </div>
+
+      <!-- Transporte -->
+      <div class="calc-sec">
+        <h3>🚕 Transporte local (Uber / Taxi)</h3>
+        <div id="cTransCont"></div>
+        <button type="button" class="calc-btn ghost" id="cBtnTrans" style="margin-top:8px">+ Agregar Uber / Taxi</button>
+      </div>
+
+      <!-- Extras -->
+      <div class="calc-sec">
+        <h3>📋 Otros gastos</h3>
+        <label>Estacionamiento ($/día)</label>
+        <input type="number" id="cEstacion" value="0" min="0">
+        <label>Imprevistos / varios ($/día)</label>
+        <input type="number" id="cImprevistos" value="0" min="0">
+      </div>
+
+      <!-- Total -->
+      <div class="calc-total">
+        <div class="lbl">Total estimado a dispersar</div>
+        <div class="mon" id="cTotal">$0.00</div>
+        <div class="sub" id="cTotalPP"></div>
+      </div>
+
+      <!-- Desglose -->
+      <div class="calc-sec calc-desg">
+        <h3>📊 Desglose</h3>
+        <div class="fila"><div><div class="et">⛽ Gasolina</div><div class="de" id="cDeGas">—</div></div><div class="mo" id="cMoGas">$0.00</div></div>
+        <div class="fila"><div><div class="et">🛣️ Casetas</div><div class="de" id="cDeCas">—</div></div><div class="mo" id="cMoCas">$0.00</div></div>
+        <div class="fila"><div><div class="et">🍽️ Alimentación</div><div class="de" id="cDeAli">—</div></div><div class="mo" id="cMoAli">$0.00</div></div>
+        <div class="fila"><div><div class="et">🏨 Hospedaje</div><div class="de" id="cDeHos">—</div></div><div class="mo" id="cMoHos">$0.00</div></div>
+        <div class="fila"><div><div class="et">🚕 Transporte</div><div class="de" id="cDeTra">—</div></div><div class="mo" id="cMoTra">$0.00</div></div>
+        <div class="fila"><div><div class="et">🚗 Estacionamiento</div><div class="de" id="cDeEst">—</div></div><div class="mo" id="cMoEst">$0.00</div></div>
+        <div class="fila"><div><div class="et">📋 Imprevistos</div><div class="de" id="cDeImp">—</div></div><div class="mo" id="cMoImp">$0.00</div></div>
+      </div>
+
+    </div>
+    <div class="calc-pie">
+      <button type="button" class="cancelar" id="cCancelar">Cancelar</button>
+      <button type="button" class="aplicar" id="cAplicar">Aplicar al importe</button>
+    </div>
+  </div>
+</div>
+
 <div class="acciones app-oculta" id="accionesSolicitud">
   <span class="msg" id="msg"></span>
+  <button type="button" id="btnCalcular">Calcular viáticos</button>
   <button type="button" id="btnDescargar">Descargar Excel</button>
   <button type="button" class="primario" id="btnGuardar">Guardar y descargar Excel + PDF</button>
 </div>
@@ -1094,9 +1276,11 @@ const CELDA = {
   cliente:     ['I11', 's'],
   observaciones:['C13','s'],
   consecutivo: ['I13', 's'],
+  importe:     ['I9',  'n'],
   firmaNombre: ['B23', 's']
 };
-/* I9  = "Importe calculado por costos" — se deja vacío a propósito
+/* I9  = "Importe calculado por costos" — se rellena con el estimado de la
+        calculadora si el usuario lo aplicó; si no, va vacío para Costos.
    I12 = "No. Ticket" — el formulario ya no lo usa, se queda vacío
    El destino y el número de personas se escriben dentro de observaciones,
    porque el formato oficial no tiene renglón para ellos y no se toca su diseño. */
@@ -1192,6 +1376,7 @@ async function construirXLSX(d){
     datosAdicionales: d.datosAdicionales, cliente: d.cliente,
     observaciones: textoObservaciones(d),
     consecutivo: d.consecutivo,
+    importe: (importeCalculado != null ? importeCalculado : ''),
     firmaNombre: d.solicitante
   };
   Object.keys(CELDA).forEach(k => {
@@ -1393,6 +1578,7 @@ function limpiar(){
   $('personas').value = '1';
   $('trabajador').value = '';
   $('tipoServicio').value = '';
+  importeCalculado = null;
   mostrarBanco();
   window.scrollTo({ top:0, behavior:'smooth' });
 }
@@ -1400,6 +1586,278 @@ function limpiar(){
 /* ══════════════════════════════════════════════════════════════
    INICIO
    ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   CALCULADORA DE VIÁTICOS
+   Reusa fechas y personas de la solicitud. El total se aplica al
+   importe (I9) del Excel. La ruta usa internet; sin conexión, los
+   km se escriben a mano.
+   ══════════════════════════════════════════════════════════════ */
+const ORS_KEY = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjM4OWUyMjcwN2U5ZTQwNTlhOTFlMjUzMDk0YjhhM2VlIiwiaCI6Im11cm11cjY0In0=';
+
+let calcKm = 0;          // km ida y vuelta
+let calcGas = 0;         // costo gasolina
+let calcTransN = 0;      // contador de transportes
+let importeCalculado = null;  // total aplicado al importe
+
+function pesos(n){
+  return '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function numDias(){
+  const ini = parseISO($('fechaInicio').value), fin = parseISO($('fechaFin').value);
+  return (ini && fin && fin >= ini) ? Math.round((fin - ini) / 86400000) + 1 : 1;
+}
+function numPersonas(){
+  return parseInt($('personas').value, 10) || 1;
+}
+
+/* ── Abrir / cerrar ── */
+function abrirCalc(){
+  if(!$('fechaInicio').value || !$('fechaFin').value){
+    msg('Primero captura las fechas del viaje: la calculadora las usa para los días y las noches.', 'error');
+    return;
+  }
+  $('calcOverlay').classList.add('abierto');
+  document.body.style.overflow = 'hidden';
+  calcRenderDias();
+  calcRenderNoches();
+  const dest = $('destino') ? $('destino').value : '';
+  if(dest && !$('cDestino').value) $('cDestino').value = dest;
+  calcRecalc();
+}
+function cerrarCalc(){
+  $('calcOverlay').classList.remove('abierto');
+  document.body.style.overflow = '';
+}
+$('btnCalcular').addEventListener('click', abrirCalc);
+$('calcCerrar').addEventListener('click', cerrarCalc);
+$('cCancelar').addEventListener('click', cerrarCalc);
+$('calcOverlay').addEventListener('click', e => { if(e.target === $('calcOverlay')) cerrarCalc(); });
+
+/* ── Geocode + ruta ── */
+async function geocode(lugar){
+  const url = 'https://api.openrouteservice.org/geocode/search?api_key=' + ORS_KEY +
+              '&text=' + encodeURIComponent(lugar) + '&boundary.country=MX&size=1';
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('geocode');
+  const d = await r.json();
+  if(!d.features || !d.features.length) throw new Error('No encontré: ' + lugar);
+  return d.features[0].geometry.coordinates;
+}
+$('cBtnRuta').addEventListener('click', async () => {
+  const o = $('cOrigen').value.trim(), d = $('cDestino').value.trim();
+  if(!o || !d){ msg('Escribe origen y destino en la calculadora.', 'error'); return; }
+  const btn = $('cBtnRuta');
+  btn.disabled = true; btn.textContent = 'Calculando…';
+  try{
+    const [cO, cD] = await Promise.all([geocode(o), geocode(d)]);
+    const r = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/json', {
+      method:'POST',
+      headers:{ 'Authorization':ORS_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ coordinates:[cO, cD], units:'km', language:'es' })
+    });
+    if(!r.ok) throw new Error('ruta');
+    const data = await r.json();
+    const km = Math.round(data.routes[0].summary.distance);
+    fijarKm(km);
+    $('cLinksRuta').style.display = 'block';
+    $('cBtnMaps').href = 'https://www.google.com/maps/dir/' + encodeURIComponent(o) + '/' + encodeURIComponent(d);
+    $('cBtnWaze').href = 'https://waze.com/ul?q=' + encodeURIComponent(d) + '&navigate=yes';
+  }catch(err){
+    msg('No pude calcular la ruta (¿sin internet?). Usa "Escribir km a mano".', 'error');
+  }finally{
+    btn.disabled = false; btn.textContent = '📍 Calcular ruta automáticamente';
+  }
+});
+$('cBtnManual').addEventListener('click', () => {
+  const box = $('cKmManual');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+});
+$('cKmIda').addEventListener('input', () => {
+  fijarKm(parseFloat($('cKmIda').value) || 0);
+});
+function fijarKm(kmIda){
+  calcKm = kmIda * 2;
+  $('cResKm').textContent = kmIda + ' km';
+  $('cRutaRes').classList.add('show');
+  calcRecalc();
+}
+
+/* ── Alimentación por día ── */
+function calcRenderDias(){
+  const dias = numDias();
+  const cont = $('cDiasCont');
+  const prev = {};
+  cont.querySelectorAll('.calc-fila-dia').forEach(f => {
+    prev[f.dataset.dia] = {
+      des: f.querySelector('.cd').checked,
+      com: f.querySelector('.cc').checked,
+      cen: f.querySelector('.cn').checked
+    };
+  });
+  cont.innerHTML = '';
+  for(let i = 1; i <= dias; i++){
+    const p = prev[i] || { des: i > 1, com: true, cen: i < dias };
+    const row = document.createElement('div');
+    row.className = 'calc-fila-dia';
+    row.dataset.dia = i;
+    row.innerHTML =
+      '<span class="dl">Día ' + i + '</span>' +
+      '<label><input type="checkbox" class="cd"' + (p.des?' checked':'') + '> Desayuno</label>' +
+      '<label><input type="checkbox" class="cc"' + (p.com?' checked':'') + '> Comida</label>' +
+      '<label><input type="checkbox" class="cn"' + (p.cen?' checked':'') + '> Cena</label>';
+    row.querySelectorAll('input').forEach(c => c.addEventListener('change', calcRecalc));
+    cont.appendChild(row);
+  }
+}
+function totalAlim(){
+  const per = numPersonas();
+  const mD = parseFloat($('cDesayuno').value) || 0;
+  const mC = parseFloat($('cComida').value) || 0;
+  const mCe = parseFloat($('cCena').value) || 0;
+  let t = 0;
+  $('cDiasCont').querySelectorAll('.calc-fila-dia').forEach(f => {
+    if(f.querySelector('.cd').checked) t += mD * per;
+    if(f.querySelector('.cc').checked) t += mC * per;
+    if(f.querySelector('.cn').checked) t += mCe * per;
+  });
+  return t;
+}
+function resumenAlim(){
+  const l = [];
+  $('cDiasCont').querySelectorAll('.calc-fila-dia').forEach((f, i) => {
+    const c = [];
+    if(f.querySelector('.cd').checked) c.push('Des');
+    if(f.querySelector('.cc').checked) c.push('Com');
+    if(f.querySelector('.cn').checked) c.push('Cen');
+    l.push('D' + (i+1) + ':' + (c.join('+') || '—'));
+  });
+  return l.join(' · ');
+}
+['cDesayuno','cComida','cCena'].forEach(id => $(id).addEventListener('input', () => { calcRenderDias(); calcRecalc(); }));
+
+/* ── Hospedaje noche por noche ── */
+function calcRenderNoches(){
+  const ini = parseISO($('fechaInicio').value), fin = parseISO($('fechaFin').value);
+  const cont = $('cNochesCont');
+  const prev = {};
+  cont.querySelectorAll('.noche').forEach(r => { prev[r.dataset.n] = r.querySelector('input').checked; });
+  cont.innerHTML = '';
+  if(!ini || !fin) return;
+  const noches = Math.round((fin - ini) / 86400000);
+  if(noches <= 0) return;
+  const dS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const mS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  for(let i = 0; i < noches; i++){
+    const f1 = new Date(ini); f1.setDate(ini.getDate() + i);
+    const f2 = new Date(f1); f2.setDate(f1.getDate() + 1);
+    const k = i + 1;
+    const chk = prev[k] !== undefined ? prev[k] : true;
+    const et = dS[f1.getDay()] + ' ' + f1.getDate() + ' ' + mS[f1.getMonth()] +
+               ' → ' + dS[f2.getDay()] + ' ' + f2.getDate() + ' ' + mS[f2.getMonth()];
+    const row = document.createElement('div');
+    row.className = 'noche calc-fila-dia'; row.dataset.n = k;
+    row.innerHTML = '<span class="dl">N' + k + '</span>' +
+                    '<label style="flex:1"><input type="checkbox"' + (chk?' checked':'') + '> ' + et + '</label>';
+    row.querySelector('input').addEventListener('change', calcRecalc);
+    cont.appendChild(row);
+  }
+}
+function calcHospedaje(){
+  const costo = parseFloat($('cCostoNoche').value) || 0;
+  let n = 0;
+  $('cNochesCont').querySelectorAll('input:checked').forEach(() => n++);
+  $('cNochesTotal').value = n;
+  return { total: costo * n, noches: n };
+}
+$('cCostoNoche').addEventListener('input', () => { calcRenderNoches(); calcRecalc(); });
+$('cDestino').addEventListener('input', () => {
+  const d = $('cDestino').value.trim();
+  if(d) $('cBtnAirbnb').href = 'https://www.airbnb.mx/s/' + encodeURIComponent(d) + '/homes';
+});
+
+/* ── Transporte ── */
+$('cBtnTrans').addEventListener('click', () => {
+  calcTransN++;
+  const id = calcTransN;
+  const div = document.createElement('div');
+  div.className = 'calc-trans'; div.id = 'ctr' + id;
+  div.innerHTML =
+    '<div class="top"><b>🚕 Viaje ' + id + '</b><button type="button" class="x" data-del="' + id + '">✕</button></div>' +
+    '<div class="calc-r2"><div><label style="margin-top:0">Tipo</label>' +
+    '<select class="ctipo"><option>Uber</option><option>Taxi</option></select></div>' +
+    '<div><label style="margin-top:0">Monto ($)</label><input type="number" class="cmonto" value="0" min="0" step="10"></div></div>' +
+    '<label>Motivo</label><input type="text" class="cmotivo" placeholder="Ej: traslado al cliente">';
+  $('cTransCont').appendChild(div);
+  div.querySelector('.cmonto').addEventListener('input', calcRecalc);
+  div.querySelector('.x').addEventListener('click', () => { div.remove(); calcRecalc(); });
+  calcRecalc();
+});
+function totalTransporte(){
+  let t = 0;
+  $('cTransCont').querySelectorAll('.cmonto').forEach(el => t += parseFloat(el.value) || 0);
+  return t;
+}
+function resumenTransporte(){
+  const n = $('cTransCont').querySelectorAll('.calc-trans').length;
+  return n ? n + ' viaje(s)' : '—';
+}
+
+/* ── Recalcular ── */
+function calcRecalc(){
+  const dias = numDias(), per = numPersonas();
+  const rend = parseFloat($('cRendimiento').value) || 12;
+  const pGas = parseFloat($('cPrecioGas').value) || 24.5;
+  calcGas = calcKm > 0 ? (calcKm / rend) * pGas : 0;
+  if(calcKm > 0){
+    $('cResLitros').textContent = (calcKm / rend).toFixed(1) + ' L';
+    $('cResGas').textContent = pesos(calcGas);
+  }
+
+  const casetas = (parseInt($('cNumCasetas').value,10) || 0) * (parseFloat($('cPrecioCaseta').value) || 0) * 2;
+  const alim = totalAlim();
+  const hosp = calcHospedaje().total;
+  const est = (parseFloat($('cEstacion').value) || 0) * dias;
+  const imp = (parseFloat($('cImprevistos').value) || 0) * dias;
+  const trans = totalTransporte();
+  const total = calcGas + casetas + alim + hosp + est + imp + trans;
+
+  const set = (id, v) => { $(id).textContent = v; };
+  set('cDeGas', calcKm > 0 ? calcKm + ' km ida y vuelta' : 'Calcula la ruta o escribe km');
+  set('cMoGas', pesos(calcGas));
+  set('cDeCas', (parseInt($('cNumCasetas').value,10)||0) + ' caseta(s) × ' + pesos(parseFloat($('cPrecioCaseta').value)||0) + ' × 2');
+  set('cMoCas', pesos(casetas));
+  set('cDeAli', resumenAlim());
+  set('cMoAli', pesos(alim));
+  set('cDeHos', calcHospedaje().noches + ' noche(s) × ' + pesos(parseFloat($('cCostoNoche').value)||0));
+  set('cMoHos', pesos(hosp));
+  set('cDeTra', resumenTransporte());
+  set('cMoTra', pesos(trans));
+  set('cDeEst', dias + ' día(s)');
+  set('cMoEst', pesos(est));
+  set('cDeImp', dias + ' día(s)');
+  set('cMoImp', pesos(imp));
+
+  $('cTotal').textContent = pesos(total);
+  $('cTotalPP').textContent = per > 0 ? pesos(total / per) + ' por persona · ' + dias + ' día(s)' : '';
+  return total;
+}
+['cRendimiento','cPrecioGas','cNumCasetas','cPrecioCaseta','cEstacion','cImprevistos']
+  .forEach(id => $(id).addEventListener('input', calcRecalc));
+
+/* ── Aplicar al importe ── */
+$('cAplicar').addEventListener('click', () => {
+  const total = calcRecalc();
+  if(total <= 0){
+    msg('El total es cero: captura al menos un rubro antes de aplicar.', 'error');
+    return;
+  }
+  importeCalculado = Math.round(total * 100) / 100;
+  cerrarCalc();
+  msg('Importe estimado aplicado: ' + pesos(importeCalculado) + '. Se colocará en el formato; Costos puede ajustarlo.', 'ok');
+});
+
+/* ══════════════════════════════════════════════════════════════ */
+
 /* ── Navegación menú ↔ pantallas ── */
 function mostrarInicio(){
   $('pantallaInicio').classList.remove('app-oculta');
