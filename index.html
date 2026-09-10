@@ -1946,6 +1946,23 @@ function resumenAlim(){
   });
   return l.join(' · ');
 }
+/* Detalle completo para el PDF: por día, qué comida y su monto */
+function detalleAlim(){
+  const per = numPersonas();
+  const mD = parseFloat($('cDesayuno').value) || 0;
+  const mC = parseFloat($('cComida').value) || 0;
+  const mCe = parseFloat($('cCena').value) || 0;
+  const dias = [];
+  $('cDiasCont').querySelectorAll('.calc-fila-dia').forEach((f, i) => {
+    const items = [];
+    if(f.querySelector('.cd').checked) items.push({ et:'Desayuno', mo: mD * per });
+    if(f.querySelector('.cc').checked) items.push({ et:'Comida',   mo: mC * per });
+    if(f.querySelector('.cn').checked) items.push({ et:'Cena',     mo: mCe * per });
+    const sub = items.reduce((s, x) => s + x.mo, 0);
+    dias.push({ dia: i + 1, items: items, subtotal: sub });
+  });
+  return { dias: dias, porPersona: (mD + mC + mCe), personas: per };
+}
 ['cDesayuno','cComida','cCena'].forEach(id => $(id).addEventListener('input', () => { calcRenderDias(); calcRecalc(); }));
 
 /* ── Hospedaje noche por noche ── */
@@ -1968,7 +1985,7 @@ function calcRenderNoches(){
     const et = dS[f1.getDay()] + ' ' + f1.getDate() + ' ' + mS[f1.getMonth()] +
                ' → ' + dS[f2.getDay()] + ' ' + f2.getDate() + ' ' + mS[f2.getMonth()];
     const row = document.createElement('div');
-    row.className = 'noche calc-fila-dia'; row.dataset.n = k;
+    row.className = 'noche calc-fila-dia'; row.dataset.n = k; row.dataset.fecha = et;
     row.innerHTML = '<span class="dl">N' + k + '</span>' +
                     '<label style="flex:1"><input type="checkbox"' + (chk?' checked':'') + '> ' + et + '</label>';
     row.querySelector('input').addEventListener('change', calcRecalc);
@@ -1981,6 +1998,17 @@ function calcHospedaje(){
   $('cNochesCont').querySelectorAll('input:checked').forEach(() => n++);
   $('cNochesTotal').value = n;
   return { total: costo * n, noches: n };
+}
+/* Detalle completo para el PDF: cada noche seleccionada con su fecha y costo */
+function detalleHospedaje(){
+  const costo = parseFloat($('cCostoNoche').value) || 0;
+  const noches = [];
+  $('cNochesCont').querySelectorAll('.noche').forEach(r => {
+    if(r.querySelector('input').checked){
+      noches.push({ etiqueta: r.dataset.fecha || ('Noche ' + r.dataset.n), costo: costo });
+    }
+  });
+  return { costoNoche: costo, noches: noches, total: costo * noches.length };
 }
 $('cCostoNoche').addEventListener('input', () => { calcRenderNoches(); calcRecalc(); });
 
@@ -2106,6 +2134,8 @@ $('cAplicar').addEventListener('click', () => {
     dias: dias, personas: per,
     ruta: paradasTexto(),
     km: calcKm, rendimiento: rend, precioGas: pGas,
+    detalleAlim: detalleAlim(),
+    detalleHosp: detalleHospedaje(),
     rubros: [
       { et:'Gasolina (ruta completa)', de: calcKm > 0 ? calcKm + ' km · ' + pesos(pGas) + '/L' : 'sin ruta', mo: calcGas },
       { et:'Casetas', de: (parseInt($('cNumCasetas').value,10)||0) + ' × ' + pesos(parseFloat($('cPrecioCaseta').value)||0) + ' × 2', mo: casetas },
@@ -2179,18 +2209,29 @@ function pdfDesgloseBlob(d, consecutivo, trabajador){
   y += 10;
 
   if(d.ruta && d.ruta.length){
-    doc.setFont('helvetica','normal'); doc.setFontSize(8);
-    var rutaTxt = (d.ruta && d.ruta.length) ? d.ruta.join('  →  ') : '—';
-    var lineasR = doc.splitTextToSize('Ruta: ' + rutaTxt + (d.km ? '   (' + d.km + ' km)' : ''), fw - 2);
-    doc.text(lineasR, M+1, y+3); y += (lineasR.length - 1) * 4;
-    y += 8;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...AZ);
+    doc.text('Ruta del viaje' + (d.km ? '  (' + d.km + ' km en total)' : ''), W/2, y+3, { align:'center' });
+    y += 6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NG);
+    /* cada parada centrada, con flecha hacia abajo entre ellas */
+    d.ruta.forEach((parada, i) => {
+      const lineas = doc.splitTextToSize(parada, fw - 20);
+      lineas.forEach(ln => { doc.text(ln, W/2, y+3, { align:'center' }); y += 4.2; });
+      if(i < d.ruta.length - 1){
+        doc.setTextColor(...AZ);
+        doc.text('↓', W/2, y+3, { align:'center' });
+        doc.setTextColor(...NG);
+        y += 4.5;
+      }
+    });
+    y += 6;
   }
 
   const fmtP = n => '$' + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2, maximumFractionDigits:2});
 
   doc.setFillColor(...AZ); doc.rect(M, y, fw, 8, 'F');
   doc.setTextColor(...BL); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-  doc.text('DESGLOSE', W/2, y+5.5, { align:'center' }); y += 8;
+  doc.text('RESUMEN', W/2, y+5.5, { align:'center' }); y += 8;
 
   d.rubros.forEach((r, i) => {
     doc.setFillColor(...(i%2===0 ? BL : GR)); doc.rect(M, y, fw, 8, 'F');
@@ -2209,7 +2250,58 @@ function pdfDesgloseBlob(d, consecutivo, trabajador){
   doc.text('TOTAL ESTIMADO', M+4, y+6.5);
   doc.text(fmtP(d.total), W-M-3, y+6.5, { align:'right' }); y += 14;
 
+  /* ── Detalle de ALIMENTACIÓN día por día ── */
+  if(d.detalleAlim && d.detalleAlim.dias && d.detalleAlim.dias.length){
+    doc.setFillColor(...AC); doc.rect(M, y, fw, 7, 'F');
+    doc.setTextColor(...AZ); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('DETALLE DE ALIMENTACIÓN  (' + d.detalleAlim.personas + ' persona(s) × ' + fmtP(d.detalleAlim.porPersona) + '/día por persona)', W/2, y+4.8, { align:'center' });
+    y += 7;
+    d.detalleAlim.dias.forEach(dia => {
+      doc.setFillColor(...GR); doc.rect(M, y, fw, 5.5, 'F');
+      doc.setTextColor(...NG); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+      doc.text('Día ' + dia.dia, M+3, y+4);
+      doc.text('Subtotal: ' + fmtP(dia.subtotal), W-M-3, y+4, { align:'right' });
+      y += 5.5;
+      if(dia.items.length){
+        doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(60,60,60);
+        dia.items.forEach(it => {
+          doc.text('   • ' + it.et, M+5, y+3.5);
+          doc.text(fmtP(it.mo), W-M-5, y+3.5, { align:'right' });
+          y += 4.2;
+        });
+      }else{
+        doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(120,120,120);
+        doc.text('   sin comidas este día', M+5, y+3.5); y += 4.2;
+      }
+      y += 1;
+    });
+    y += 4;
+  }
+
+  /* ── Detalle de HOSPEDAJE noche por noche ── */
+  if(d.detalleHosp && d.detalleHosp.noches && d.detalleHosp.noches.length){
+    if(y > 235){ doc.addPage(); y = 16; }
+    doc.setFillColor(...AC); doc.rect(M, y, fw, 7, 'F');
+    doc.setTextColor(...AZ); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('DETALLE DE HOSPEDAJE  (' + fmtP(d.detalleHosp.costoNoche) + ' por noche)', W/2, y+4.8, { align:'center' });
+    y += 7;
+    d.detalleHosp.noches.forEach((n, i) => {
+      doc.setFillColor(...(i%2===0 ? BL : GR)); doc.rect(M, y, fw, 5.5, 'F');
+      doc.setTextColor(...NG); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+      doc.text('Noche ' + (i+1) + ':  ' + n.etiqueta, M+3, y+4);
+      doc.setFont('helvetica','bold');
+      doc.text(fmtP(n.costo), W-M-3, y+4, { align:'right' });
+      y += 5.5;
+    });
+    doc.setFillColor(...GR); doc.rect(M, y, fw, 6, 'F');
+    doc.setDrawColor(...AZ); doc.setLineWidth(0.2); doc.rect(M, y, fw, 6);
+    doc.setTextColor(...AZ); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('Total hospedaje: ' + fmtP(d.detalleHosp.total), W-M-3, y+4, { align:'right' });
+    y += 10;
+  }
+
   if(d.transporte && d.transporte.length){
+    if(y > 250){ doc.addPage(); y = 16; }
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...AZ);
     doc.text('Transporte local (Uber / Taxi):', M+1, y+3); y += 6;
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...NG);
@@ -2221,6 +2313,7 @@ function pdfDesgloseBlob(d, consecutivo, trabajador){
   }
 
   if(d.comentarios){
+    if(y > 250){ doc.addPage(); y = 16; }
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...AZ);
     doc.text('Comentarios:', M+1, y+3); y += 5;
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...NG);
@@ -2229,10 +2322,12 @@ function pdfDesgloseBlob(d, consecutivo, trabajador){
   }
 
   if(d.links && d.links.length){
+    if(y > 235){ doc.addPage(); y = 16; }
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...AZ);
     doc.text('Enlaces de referencia:', M+1, y+3); y += 5;
     doc.setFontSize(7.5);
     d.links.forEach(l => {
+      if(y > 275){ doc.addPage(); y = 16; }
       doc.setTextColor(...NG); doc.setFont('helvetica','bold');
       doc.text('• ' + l.et + ': ', M+3, y+3);
       doc.setFont('helvetica','normal'); doc.setTextColor(20,60,160);
@@ -2244,7 +2339,7 @@ function pdfDesgloseBlob(d, consecutivo, trabajador){
   }
 
   doc.setFontSize(6.5); doc.setTextColor(150,150,150);
-  doc.text('Este desglose es un estimado del solicitante. El importe final lo determina el Departamento de Costos.', W/2, 270, { align:'center' });
+  doc.text('Este desglose es un estimado del solicitante. El importe final lo determina el Departamento de Costos.', W/2, 285, { align:'center' });
 
   return doc.output('blob');
 }
